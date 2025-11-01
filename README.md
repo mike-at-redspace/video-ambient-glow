@@ -160,13 +160,18 @@ Modular, typed, and easy to extend.
 
 ## Development
 
-```bash
-npm install
-npm run build
-npm test
-npm run lint
-npm run format
-```
+### Available Scripts
+
+| Script                  | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `npm run dev`           | Start development mode with watch (Rollup) |
+| `npm run build`         | Build the library for production           |
+| `npm run build:example` | Build library and example app              |
+| `npm test`              | Run tests once                             |
+| `npm run test:watch`    | Run tests in watch mode                    |
+| `npm run lint`          | Format code and run ESLint                 |
+| `npm run format`        | Format code with Prettier                  |
+| `npm run format:check`  | Check code formatting without writing      |
 
 ## Testing
 
