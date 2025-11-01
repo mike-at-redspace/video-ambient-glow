@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>video-ambient-glow — Example</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body id="app">
+    <main class="app-main">
+      <div class="app-grid">
+        <section class="content-section">
+          <div class="video-container">
+            <video
+              class="video-player"
+              id="player"
+              muted
+              loop
+              playsinline
+              crossorigin="anonymous"
+            >
+              <source
+                src="https://videos.pexels.com/video-files/1943483/1943483-uhd_3840_2160_25fps.mp4"
+                type="video/mp4"
+              />
+            </video>
+            <div id="spinner"></div>
+          </div>
+          <section class="video-details">
+            <h1 class="video-title" id="video-title">
+              Demo Video Title — Ambient Glow Showcase
+            </h1>
+            <p class="video-meta">
+              Uploaded by
+              <span class="video-meta-highlight">Lore M. Media</span> • 15k
+              views • Oct 2025
+            </p>
+            <p class="video-description">
+              This demo replicates YouTube's video layout with an ambient glow
+              behind the video that reacts to its colors every second, easing
+              between frames.
+            </p>
+          </section>
+          <section class="comments-section">
+            <h3 class="comments-title">Comments</h3>
+            <div class="comments-list">
+              <div class="comment-item">
+                <div class="comment-avatar"></div>
+                <div>
+                  <div class="comment-author">
+                    PixelWatcher<span class="comment-time">• 2h ago</span>
+                  </div>
+                  <div class="comment-text">
+                    That ambient glow feels futuristic, love it!
+                  </div>
+                </div>
+              </div>
+              <div class="comment-item">
+                <div class="comment-avatar"></div>
+                <div>
+                  <div class="comment-author">
+                    MediaNerd<span class="comment-time">• 1d ago</span>
+                  </div>
+                  <div class="comment-text">
+                    Looks exactly like YouTube Premium Dark — nice job.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+        <aside class="sidebar">
+          <h4 class="sidebar-title">Up next</h4>
+          <div class="sidebar-content" id="cards"></div>
+        </aside>
+      </div>
+    </main>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

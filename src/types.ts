@@ -1,0 +1,88 @@
+/**
+ * @module types
+ * @packageDocumentation
+ *
+ * Type definitions for the glow effect.
+ */
+
+/**
+ * Options for the glow effect.
+ *
+ * @public
+ */
+export interface GlowOptions {
+  /**
+   * CSS blur in pixels. Higher = more diffused.
+   * @defaultValue 96
+   */
+  blur?: number
+  /**
+   * Canvas opacity 0-1. Controls glow intensity.
+   * @defaultValue 0.65
+   */
+  opacity?: number
+  /**
+   * Brightness multiplier. > 1 brightens, < 1 darkens.
+   * @defaultValue 1.1
+   */
+  brightness?: number
+  /**
+   * Saturation multiplier. > 1 increases color, 0 removes it.
+   * @defaultValue 1.2
+   */
+  saturate?: number
+  /**
+   * Canvas scale relative to video. > 1 makes glow bigger.
+   * @defaultValue 1.08
+   */
+  scale?: number
+  /**
+   * Downscale factor for perf. Lower = faster but lower quality.
+   * Range: 0.01-0.5 (recommended: 0.08)
+   * @defaultValue 0.08
+   */
+  downscale?: number
+  /**
+   * Update interval in ms. Lower = smoother but more CPU.
+   * @defaultValue 900
+   */
+  updateInterval?: number
+  /**
+   * Blend weight for previous frame (0-1). Higher = smoother transitions.
+   * Note: blendOld + blendNew should usually equal 1.
+   * @defaultValue 0.85
+   */
+  blendOld?: number
+  /**
+   * Blend weight for new frame (0-1). Higher = faster reaction to changes.
+   * Note: blendOld + blendNew should usually equal 1.
+   * @defaultValue 0.15
+   */
+  blendNew?: number
+}
+
+/**
+ * Internal normalized options (all required after merging with defaults).
+ *
+ * @internal
+ */
+export interface NormalizedGlowOptions {
+  /** @internal */
+  blur: number
+  /** @internal */
+  opacity: number
+  /** @internal */
+  brightness: number
+  /** @internal */
+  saturate: number
+  /** @internal */
+  scale: number
+  /** @internal */
+  downscale: number
+  /** @internal */
+  updateInterval: number
+  /** @internal */
+  blendOld: number
+  /** @internal */
+  blendNew: number
+}

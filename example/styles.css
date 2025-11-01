@@ -1,0 +1,375 @@
+/**
+ * Styles for the video-ambient-glow example
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import 'tailwindcss';
+
+@layer tokens, base, components;
+
+/* ============================================================================
+   TOKENS: Design tokens and CSS custom properties
+   ============================================================================ */
+
+@layer tokens {
+  :root {
+    /* Tweakpane theme */
+    --tp-base-background-color: hsla(0, 0%, 10%, 0.55);
+    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
+    --tp-button-background-color: hsla(0, 0%, 70%, 1);
+    --tp-button-background-color-active: hsla(0, 0%, 95%, 1);
+    --tp-button-background-color-focus: hsla(0, 0%, 90%, 1);
+    --tp-button-background-color-hover: hsla(0, 0%, 78%, 1);
+    --tp-button-foreground-color: hsla(0, 0%, 0%, 0.85);
+    --tp-container-background-color: hsla(0, 0%, 0%, 0.25);
+    --tp-container-background-color-active: hsla(0, 0%, 0%, 0.55);
+    --tp-container-background-color-focus: hsla(0, 0%, 0%, 0.45);
+    --tp-container-background-color-hover: hsla(0, 0%, 0%, 0.35);
+    --tp-container-foreground-color: hsla(0, 0%, 100%, 0.55);
+    --tp-groove-foreground-color: hsla(0, 0%, 0%, 0.25);
+    --tp-input-background-color: hsla(0, 0%, 0%, 0.25);
+    --tp-input-background-color-active: hsla(0, 0%, 0%, 0.55);
+    --tp-input-background-color-focus: hsla(0, 0%, 0%, 0.45);
+    --tp-input-background-color-hover: hsla(0, 0%, 0%, 0.35);
+    --tp-input-foreground-color: hsla(0, 0%, 100%, 0.55);
+    --tp-label-foreground-color: hsla(0, 0%, 100%, 0.55);
+    --tp-monitor-background-color: hsla(0, 0%, 0%, 0.25);
+    --tp-monitor-foreground-color: hsla(0, 0%, 100%, 0.35);
+
+    --gradient-0: linear-gradient(
+      217deg,
+      theme('colors.pink.500'),
+      theme('colors.yellow.300')
+    );
+    --gradient-1: linear-gradient(
+      145deg,
+      theme('colors.yellow.600'),
+      theme('colors.amber.500')
+    );
+    --gradient-2: linear-gradient(
+      328deg,
+      theme('colors.orange.900'),
+      theme('colors.violet.500')
+    );
+    --gradient-3: linear-gradient(
+      92deg,
+      theme('colors.violet.300'),
+      theme('colors.pink.200')
+    );
+    --gradient-4: linear-gradient(
+      168deg,
+      theme('colors.pink.400'),
+      theme('colors.slate.300')
+    );
+    --gradient-5: linear-gradient(
+      203deg,
+      theme('colors.green.300'),
+      theme('colors.pink.500')
+    );
+    --gradient-6: linear-gradient(
+      75deg,
+      theme('colors.slate.200'),
+      theme('colors.green.500')
+    );
+    --gradient-7: linear-gradient(
+      254deg,
+      theme('colors.yellow.200'),
+      theme('colors.sky.100')
+    );
+    --gradient-8: linear-gradient(
+      112deg,
+      theme('colors.teal.300'),
+      theme('colors.purple.700')
+    );
+    --gradient-9: linear-gradient(
+      189deg,
+      theme('colors.slate.600'),
+      theme('colors.slate.50')
+    );
+    --gradient-10: linear-gradient(
+      48deg,
+      theme('colors.emerald.500'),
+      theme('colors.cyan.400')
+    );
+    --gradient-11: linear-gradient(
+      336deg,
+      theme('colors.red.700'),
+      theme('colors.blue.500')
+    );
+    --gradient-12: linear-gradient(
+      158deg,
+      theme('colors.rose.500'),
+      theme('colors.blue.200')
+    );
+    --gradient-13: linear-gradient(
+      285deg,
+      theme('colors.blue.400'),
+      theme('colors.cyan.500')
+    );
+    --gradient-14: linear-gradient(
+      124deg,
+      theme('colors.blue.800'),
+      theme('colors.violet.300')
+    );
+    --gradient-15: linear-gradient(
+      67deg,
+      theme('colors.amber.700'),
+      theme('colors.slate.500')
+    );
+  }
+}
+
+/* ============================================================================
+   BASE: Base element styles and resets
+   ============================================================================ */
+
+@layer base {
+  body {
+    background: #0f0f0f;
+    color: #f1f1f1;
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial;
+    overflow: hidden;
+    margin: 0;
+  }
+}
+
+/* ============================================================================
+   COMPONENTS: Component-specific styles
+   ============================================================================ */
+
+@layer components {
+  /* ========================================================================
+     App Layout
+     ======================================================================== */
+  .app-main {
+    @apply min-h-screen flex justify-center p-2 mt-2 h-screen;
+  }
+
+  .app-grid {
+    @apply w-full grid grid-cols-1 gap-4 ps-2;
+    max-width: 1920px;
+
+    @media (min-width: 1024px) {
+      grid-template-columns: minmax(0, 75%) minmax(0, 420px);
+    }
+  }
+
+  /* ========================================================================
+     Content Section
+     ======================================================================== */
+  .content-section {
+    @apply overflow-visible h-full;
+  }
+
+  .video-container {
+    @apply relative flex justify-center items-center max-w-full bg-black rounded-2xl;
+    min-height: 360px;
+
+    @media (min-width: 1024px) {
+      aspect-ratio: 16 / 9;
+    }
+  }
+
+  .video-player {
+    @apply rounded-lg w-full relative z-10;
+  }
+
+  .video-details {
+    @apply mt-4;
+
+    .video-title {
+      @apply text-2xl font-semibold;
+    }
+
+    .video-meta {
+      @apply text-sm text-neutral-400 mt-1;
+
+      .video-meta-highlight {
+        @apply text-purple-400 font-medium;
+      }
+    }
+
+    .video-description {
+      @apply mt-3 text-base text-neutral-300;
+    }
+  }
+
+  /* ========================================================================
+     Comments Section
+     ======================================================================== */
+  .comments-section {
+    @apply mt-6 rounded-xl p-4 bg-neutral-900/40;
+
+    .comments-title {
+      @apply text-sm font-semibold mb-3;
+    }
+
+    .comments-list {
+      @apply space-y-3;
+
+      .comment-item {
+        @apply flex gap-3;
+
+        .comment-avatar {
+          @apply w-10 h-10 bg-neutral-700 rounded-full;
+        }
+
+        .comment-author {
+          @apply text-sm font-medium;
+
+          .comment-time {
+            @apply text-xs text-neutral-500;
+          }
+        }
+
+        .comment-text {
+          @apply text-sm text-neutral-300;
+        }
+      }
+    }
+  }
+
+  /* ========================================================================
+     Sidebar
+     ======================================================================== */
+  .sidebar {
+    @apply p-3 pr-0 mr-1 rounded-xl space-y-4;
+    background: hsla(0, 0%, 0%, 0.3);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: #404040 transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #404040;
+      border-radius: 3px;
+      border: 1px solid transparent;
+
+      &:hover {
+        background-color: #525252;
+      }
+    }
+
+    .sidebar-title {
+      @apply text-lg font-semibold;
+    }
+
+    .sidebar-content {
+      @apply overflow-y-auto h-full space-y-3 mr-1 snap-y pr-1;
+    }
+  }
+
+  /* ========================================================================
+     Video Cards
+     ======================================================================== */
+  .video-card {
+    @apply flex items-start gap-3 p-3 rounded-xl border cursor-pointer snap-start;
+    @apply bg-linear-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800/50;
+    @apply hover:bg-neutral-800/60 transition-all duration-300;
+    @apply hover:shadow-lg hover:shadow-zinc-500/10;
+
+    .video-card-thumb {
+      @apply w-32 h-20 rounded-lg shrink-0 shadow-lg relative;
+    }
+
+    .video-card-title {
+      @apply text-base pt-1 font-semibold text-neutral-50 line-clamp-2 mb-1.5;
+    }
+
+    .video-card-publisher {
+      @apply text-sm text-neutral-400;
+    }
+
+    .video-card-meta {
+      @apply text-xs text-neutral-500 flex items-center gap-2 mt-0.5;
+
+      .video-card-meta-separator {
+        @apply text-neutral-600;
+      }
+    }
+  }
+
+  /* ========================================================================
+     Utility Components
+     ======================================================================== */
+  #spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+    z-index: 100;
+  }
+
+  @keyframes spin {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  .thumb {
+    &::after {
+      content: '▶';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 50px;
+      color: rgba(255, 255, 255, 0.75);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease-in-out;
+      z-index: 10;
+    }
+  }
+
+  .playing .thumb::after {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   THIRD-PARTY: Styles for external libraries
+   ============================================================================
+   Note: Tweakpane styles are outside @layer because Tweakpane injects
+   unlayered styles, and unlayered styles always override layered styles.
+   We use increased specificity (#app body .tp-dfwv) to override Tweakpane's
+   injected styles (.tp-dfwv).
+   ============================================================================ */
+
+body#app,
+#app body {
+  .tp-rotv {
+    backdrop-filter: blur(32px);
+  }
+
+  /* Make title bar draggable */
+  .tp-dfwv .tp-lblv_l,
+  .tp-dfwv .tp-lblv:first-child {
+    cursor: move;
+    user-select: none;
+  }
+}
