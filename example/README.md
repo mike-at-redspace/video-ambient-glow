@@ -47,7 +47,7 @@ The example is organized into modules under `lib/`:
 - `tweakpaneControls.js` — Sets up Tweakpane bindings for glow parameters
 - `tweakpaneStyles.js` — Applies custom positioning styles to Tweakpane
 - `tweakpaneDrag.js` — Makes Tweakpane draggable
-- `initializeTweakpane.js` — Sets up Tweakpane with controls, styling, and drag functionality (`setupTweak`)
+- `initializeTweakpane.js` — Sets up Tweakpane with controls, styling, and drag functionality (`setupPane`)
 
 ## Tech Stack
 

@@ -1,15 +1,10 @@
 import { AmbientGlow } from 'video-ambient-glow'
-import {
-  DOM_IDS,
-  DEFAULT_GLOW_PARAMS,
-  TWEAKPANE_TITLE,
-  VIDEO_SOURCES
-} from './constants.js'
+import { DOM_IDS, DEFAULT_GLOW_PARAMS, VIDEO_SOURCES } from './constants.js'
 import {
   createVideoCard,
   createPlayVideoFunction,
   createResetButtonHandler,
-  setupTweak
+  setupPane
 } from './lib/index.js'
 
 /**
@@ -77,7 +72,7 @@ video.addEventListener('error', hideSpinner)
 // Tweakpane Controls Setup
 // ============================================================================
 
-const pane = setupTweak(TWEAKPANE_TITLE, params, glow)
+const pane = setupPane(params, glow)
 
 pane
   .addButton({ title: 'Reset' })

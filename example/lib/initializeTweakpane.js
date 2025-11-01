@@ -1,7 +1,8 @@
 import { Pane } from 'tweakpane'
+import { TWEAKPANE_TITLE } from '../constants.js'
 import { applyTweakpaneStyles } from './tweakpaneStyles.js'
 import { makeTweakpaneDraggable } from './tweakpaneDrag.js'
-import { setupTweakpaneControls } from './tweakpaneControls.js'
+import { setupPanepaneControls } from './tweakpaneControls.js'
 
 /**
  * Initializes Tweakpane styling and drag functionality.
@@ -29,13 +30,12 @@ function initializeTweakpane(pane) {
  * Sets up Tweakpane initialization with retry logic.
  * Handles asynchronous DOM creation using MutationObserver and timeouts.
  *
- * @param {string} title - The title for the Tweakpane instance
  * @param {Record<string, any>} params - The parameters object to bind
  * @param {import('video-ambient-glow').AmbientGlow} glow - The AmbientGlow instance
  * @returns {import('tweakpane').Pane} The created Tweakpane instance
  */
-export function setupTweak(title, params, glow) {
-  const pane = new Pane({ title })
+export function setupPane(params, glow) {
+  const pane = new Pane({ title: TWEAKPANE_TITLE })
 
   let initialized = initializeTweakpane(pane)
 
@@ -71,7 +71,7 @@ export function setupTweak(title, params, glow) {
     }
   }, 200)
 
-  setupTweakpaneControls(pane, params, glow)
+  setupPanepaneControls(pane, params, glow)
 
   return pane
 }

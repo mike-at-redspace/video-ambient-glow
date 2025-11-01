@@ -8,7 +8,7 @@ import { DEFAULT_GLOW_PARAMS, TWEAKPANE_CONFIG } from '../constants.js'
  * @param {Record<string, any>} params - The parameters object to bind
  * @param {import('video-ambient-glow').AmbientGlow} glow - The AmbientGlow instance
  */
-export function setupTweakpaneControls(pane, params, glow) {
+export function setupPanepaneControls(pane, params, glow) {
   Object.keys(TWEAKPANE_CONFIG).forEach(key => {
     const config = TWEAKPANE_CONFIG[key]
     pane
