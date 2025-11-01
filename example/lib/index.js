@@ -7,8 +7,5 @@
 
 export { createVideoCard } from './createVideoCard.js'
 export { createPlayVideoFunction } from './playVideo.js'
-export {
-  setupTweakpaneControls,
-  createResetButtonHandler
-} from './tweakpaneControls.js'
-export { setupTweakpaneInitialization } from './initializeTweakpane.js'
+export { createResetButtonHandler } from './tweakpaneControls.js'
+export { setupTweak } from './initializeTweakpane.js'
