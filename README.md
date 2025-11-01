@@ -2,7 +2,7 @@
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8a3d5952-e15b-4719-8f99-7e288dc3eedd/deploy-status)](https://app.netlify.com/projects/video-ambient-glow/deploys)
 
-A tiny, zero-dependency library that adds a smooth, color-reactive glow behind any HTML5 video — just like YouTube’s immersive mode.
+Inspired by YouTube’s immersive glow, this tiny, zero-dependency library adds a smooth, color-reactive effect behind HTML5 videos—no thumbnails or spritesheets needed.
 
 ## Demo
 
