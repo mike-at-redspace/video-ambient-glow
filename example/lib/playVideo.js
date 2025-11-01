@@ -9,8 +9,8 @@ import { VIDEO_SOURCES, CARD_CONFIG } from '../constants.js'
  * @param {HTMLElement[]} cards - Array of card elements
  * @returns {(index: number) => void} Function that plays a video by index
  */
-export function createPlayVideoFunction(video, videoTitleEl, cards) {
-  return function playVideo(index) {
+export const createPlayVideoFunction = (video, videoTitleEl, cards) =>
+  function playVideo(index) {
     if (index < 0 || index >= cards.length || !cards[index]) {
       console.error(`Invalid video index: ${index}`)
       return
@@ -28,4 +28,3 @@ export function createPlayVideoFunction(video, videoTitleEl, cards) {
     video.load()
     video.play().catch(error => console.error('Error playing video:', error))
   }
-}

@@ -8,7 +8,7 @@ import { DEFAULT_GLOW_PARAMS, TWEAKPANE_CONFIG } from '../constants.js'
  * @param {Record<string, any>} params - The parameters object to bind
  * @param {import('video-ambient-glow').AmbientGlow} glow - The AmbientGlow instance
  */
-export function setupPanepaneControls(pane, params, glow) {
+export const setupPanepaneControls = (pane, params, glow) => {
   Object.keys(TWEAKPANE_CONFIG).forEach(key => {
     const config = TWEAKPANE_CONFIG[key]
     pane
@@ -24,10 +24,8 @@ export function setupPanepaneControls(pane, params, glow) {
  * @param {Record<string, any>} params - The parameters object to reset
  * @param {import('video-ambient-glow').AmbientGlow} glow - The AmbientGlow instance
  */
-export function createResetButtonHandler(pane, params, glow) {
-  return () => {
-    Object.assign(params, DEFAULT_GLOW_PARAMS)
-    pane.refresh() // Update Tweakpane UI to reflect reset values
-    glow.updateOptions(DEFAULT_GLOW_PARAMS) // Apply reset to glow effect
-  }
+export const createResetButtonHandler = (pane, params, glow) => () => {
+  Object.assign(params, DEFAULT_GLOW_PARAMS)
+  pane.refresh() // Update Tweakpane UI to reflect reset values
+  glow.updateOptions(DEFAULT_GLOW_PARAMS) // Apply reset to glow effect
 }

@@ -1,314 +1,256 @@
 /**
- * Makes the Tweakpane draggable by its header.
- * Adds drag functionality to the title bar of the pane.
+ * Makes a Tweakpane draggable via its header.
+ * Returns a cleanup function to remove event listeners.
  *
- * @param {import('tweakpane').Pane} [pane] - Optional Pane instance to keep expanded after drag
- * @returns {Function|null} Cleanup function to remove event listeners, or null if setup failed
+ * @param {import('tweakpane').Pane} [pane] Optional Pane instance to keep expanded after drag
+ * @returns {Function|null} Cleanup function or null if setup failed
  */
 export function makeTweakpaneDraggable(pane = null) {
-  const tweakpaneElement = document.querySelector('.tp-dfwv')
-  if (!tweakpaneElement) {
-    console.warn('Tweakpane element (.tp-dfwv) not found')
-    return null
-  }
+  const paneEl = document.querySelector('.tp-dfwv')
+  if (!paneEl) return null
 
-  const titleElement = findTitleElement(tweakpaneElement)
-  if (!titleElement) {
-    console.warn('Could not find Tweakpane title element for dragging')
-    return null
-  }
+  const headerEl = findHeader(paneEl)
+  if (!headerEl) return null
 
   const state = {
-    isDragging: false,
-    dragHappened: false,
+    dragging: false,
+    moved: false,
     startX: 0,
     startY: 0,
-    initialLeft: 0,
-    initialBottom: 0
+    left: 0,
+    bottom: 0
   }
-
-  setupDraggableStyles(titleElement)
+  setupDraggableStyles(headerEl)
 
   const handlers = {
-    dragStart: e =>
-      handleDragStart(e, state, tweakpaneElement, titleElement, pane),
-    drag: e => handleDrag(e, state, tweakpaneElement, pane),
-    dragEnd: e => handleDragEnd(e, state, tweakpaneElement, pane),
-    preventClick: e => handleClickPrevention(e, state, pane),
-    preventSelect: e => e.preventDefault()
+    mouseDown: e => startDrag(e, state, paneEl, headerEl, pane),
+    mouseMove: e => drag(e, state, paneEl, pane),
+    mouseUp: e => endDrag(e, state, paneEl, pane),
+    click: e => preventClickAfterDrag(e, state, pane),
+    selectStart: e => e.preventDefault()
   }
 
-  attachEventListeners(titleElement, handlers)
-
-  return () => {
-    removeEventListeners(titleElement, handlers)
-    titleElement.style.cursor = ''
-    titleElement.style.userSelect = ''
-  }
+  attachListeners(headerEl, handlers)
+  return () => detachListeners(headerEl, handlers)
 }
 
 /**
- * Finds the title element in the Tweakpane structure
- * @param {HTMLElement} tweakpaneElement
- * @returns {HTMLElement|null}
+ * Find the draggable header element inside a Tweakpane.
+ * @param {HTMLElement} paneEl Tweakpane root element
+ * @returns {HTMLElement|null} Header element or null if not found
  */
-function findTitleElement(tweakpaneElement) {
-  const rootView = tweakpaneElement.querySelector('.tp-rotv')
-
-  if (rootView) {
-    const labelView = rootView.querySelector('.tp-lblv')
-    if (labelView) {
-      const labelText = labelView.querySelector('.tp-lblv_l')
-      if (labelText || labelView) {
-        return labelText || labelView
-      }
-    }
-  }
-
+function findHeader(paneEl) {
   const selectors = [
+    '.tp-rotv .tp-lblv_l',
+    '.tp-rotv .tp-lblv',
     '.tp-lblv_l',
     '.tp-lblv',
     '.tp-rotv > .tp-lblv',
     '.tp-rotv > .tp-lblv_l'
   ]
-
-  for (const selector of selectors) {
-    const element = tweakpaneElement.querySelector(selector)
-    if (element) return element
+  for (const sel of selectors) {
+    const el = paneEl.querySelector(sel)
+    if (el) return el
   }
-
-  if (rootView) {
-    return rootView.firstElementChild || rootView
-  }
-
-  return tweakpaneElement.firstElementChild
-}
-
-/**
- * Sets up cursor and user-select styles for draggable element
- * @param {HTMLElement} titleElement
- */
-function setupDraggableStyles(titleElement) {
-  titleElement.style.cursor = 'move'
-  titleElement.style.userSelect = 'none'
-  titleElement.style.pointerEvents = 'auto'
-
-  const parent = titleElement.parentElement
-  if (
-    parent?.classList.contains('tp-lblv') ||
-    parent?.classList.contains('tp-rotv')
-  ) {
-    parent.style.cursor = 'move'
-    parent.style.userSelect = 'none'
-  }
-}
-
-/**
- * Checks if the clicked element is valid for initiating drag
- * @param {MouseEvent} e
- * @param {HTMLElement} titleElement
- * @returns {boolean}
- */
-function isValidDragTarget(e, titleElement) {
-  const clickedElement = e.target
-  const parent = titleElement.parentElement
-
   return (
-    clickedElement === titleElement ||
-    titleElement.contains(clickedElement) ||
+    paneEl.querySelector('.tp-rotv')?.firstElementChild ||
+    paneEl.firstElementChild
+  )
+}
+
+/**
+ * Apply draggable styles to element and its parent if relevant.
+ * @param {HTMLElement} el Draggable element
+ */
+function setupDraggableStyles(el) {
+  ;[el, el.parentElement].forEach(elm => {
+    if (!elm) return
+    elm.style.cursor = 'move'
+    elm.style.userSelect = 'none'
+    elm.style.pointerEvents = 'auto'
+  })
+}
+
+/**
+ * Check if a mouse event target is valid for drag start.
+ * @param {MouseEvent} e Mouse event
+ * @param {HTMLElement} el Header element
+ * @returns {boolean} True if drag can start
+ */
+function isValidTarget(e, el) {
+  const parent = el.parentElement
+  return (
+    e.target === el ||
+    el.contains(e.target) ||
     (parent?.classList.contains('tp-lblv') &&
-      (clickedElement === parent || parent.contains(clickedElement)))
+      (e.target === parent || parent.contains(e.target)))
   )
 }
 
 /**
- * Handles drag start event
- * @param {MouseEvent} e
- * @param {Object} state
- * @param {HTMLElement} tweakpaneElement
- * @param {HTMLElement} titleElement
- * @param {import('tweakpane').Pane} pane
+ * Handle drag start event.
+ * @param {MouseEvent} e Mouse event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {HTMLElement} el Header element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
  */
-function handleDragStart(e, state, tweakpaneElement, titleElement, pane) {
-  if (!isValidDragTarget(e, titleElement) || e.button !== 0) {
-    return
-  }
-
+function startDrag(e, state, paneEl, el, pane) {
+  if (!isValidTarget(e, el) || e.button !== 0) return
   e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
 
-  if (pane) {
-    pane.expanded = true
-  }
+  expandPane(pane)
+  Object.assign(state, {
+    dragging: true,
+    moved: false,
+    startX: e.clientX,
+    startY: e.clientY
+  })
 
-  state.isDragging = true
-  state.dragHappened = false
-  state.startX = e.clientX
-  state.startY = e.clientY
-
-  const rect = tweakpaneElement.getBoundingClientRect()
-  state.initialLeft = rect.left
-  state.initialBottom = window.innerHeight - rect.bottom
-
-  tweakpaneElement.style.transition = 'none'
+  const rect = paneEl.getBoundingClientRect()
+  state.left = rect.left
+  state.bottom = window.innerHeight - rect.bottom
+  paneEl.style.transition = 'none'
 }
 
 /**
- * Handles drag movement
- * @param {MouseEvent} e
- * @param {Object} state
- * @param {HTMLElement} tweakpaneElement
- * @param {import('tweakpane').Pane} pane
+ * Handle drag movement.
+ * @param {MouseEvent} e Mouse event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
  */
-function handleDrag(e, state, tweakpaneElement, pane) {
-  if (!state.isDragging) return
-
+function drag(e, state, paneEl, pane) {
+  if (!state.dragging) return
   e.preventDefault()
 
-  const dragDistanceX = Math.abs(e.clientX - state.startX)
-  const dragDistanceY = Math.abs(e.clientY - state.startY)
-  const DRAG_THRESHOLD = 5
+  const dx = e.clientX - state.startX
+  const dy = e.clientY - state.startY
 
-  if (dragDistanceX > DRAG_THRESHOLD || dragDistanceY > DRAG_THRESHOLD) {
-    state.dragHappened = true
-  }
+  if (!state.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) state.moved = true
+  expandPane(pane)
 
-  if (pane) {
-    pane.expanded = true
-  }
+  const rect = paneEl.getBoundingClientRect()
+  paneEl.style.left = `${clamp(state.left + dx, 0, window.innerWidth - rect.width)}px`
+  paneEl.style.bottom = `${clamp(state.bottom - dy, 0, window.innerHeight - rect.height)}px`
+  paneEl.style.top = 'auto'
+  paneEl.style.right = 'auto'
+}
 
-  const deltaX = e.clientX - state.startX
-  const deltaY = e.clientY - state.startY
+/**
+ * Handle drag end.
+ * @param {MouseEvent} e Mouse event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ */
+function endDrag(e, state, paneEl, pane) {
+  if (!state.dragging) return
+  state.dragging = false
+  paneEl.style.transition = ''
+  e.preventDefault()
+  requestAnimationFrame(() => expandPane(pane) || ensureExpanded(paneEl))
+}
 
-  const newLeft = state.initialLeft + deltaX
-  const newBottom = state.initialBottom - deltaY
+/**
+ * Prevent click toggle after a drag.
+ * @param {MouseEvent} e Mouse event
+ * @param {Object} state Drag state
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ */
+function preventClickAfterDrag(e, state, pane) {
+  if (!state.moved) return
+  e.preventDefault()
+  state.moved = false
+  expandPane(pane)
+}
 
-  const rect = tweakpaneElement.getBoundingClientRect()
-  const clampedLeft = Math.max(
-    0,
-    Math.min(window.innerWidth - rect.width, newLeft)
+/**
+ * Ensure pane is expanded if no pane reference is available.
+ * @param {HTMLElement} paneEl Tweakpane element
+ */
+function ensureExpanded(paneEl) {
+  if (!paneEl.classList.contains('tp-dfwv-c')) return
+  paneEl.classList.remove('tp-dfwv-c')
+  const root = paneEl.querySelector('.tp-rotv')
+  if (root) root.style.display = ''
+}
+
+/**
+ * Expand pane safely if reference exists.
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ * @returns {import('tweakpane').Pane|null} The pane instance
+ */
+function expandPane(pane) {
+  if (pane) pane.expanded = true
+  return pane
+}
+
+/**
+ * Attach all event listeners for drag.
+ * @param {HTMLElement} el Header element
+ * @param {Object} handlers Event handlers
+ * @param {Function} handlers.mouseDown
+ * @param {Function} handlers.mouseMove
+ * @param {Function} handlers.mouseUp
+ * @param {Function} handlers.click
+ * @param {Function} handlers.selectStart
+ */
+function attachListeners(
+  el,
+  { mouseDown, mouseMove, mouseUp, click, selectStart }
+) {
+  const targets = [
+    el,
+    el.parentElement?.classList.contains('tp-lblv') && el.parentElement
+  ].filter(Boolean)
+  targets.forEach(t =>
+    t.addEventListener('mousedown', mouseDown, { passive: false })
   )
-  const clampedBottom = Math.max(
-    0,
-    Math.min(window.innerHeight - rect.height, newBottom)
-  )
 
-  tweakpaneElement.style.left = `${clampedLeft}px`
-  tweakpaneElement.style.bottom = `${clampedBottom}px`
-  tweakpaneElement.style.right = 'auto'
-  tweakpaneElement.style.top = 'auto'
+  el.addEventListener('selectstart', selectStart)
+  el.addEventListener('dragstart', selectStart)
+  el.addEventListener('click', click, { capture: true })
+
+  document.addEventListener('mousemove', mouseMove, { passive: false })
+  document.addEventListener('mouseup', mouseUp, { passive: false })
 }
 
 /**
- * Handles drag end event
- * @param {MouseEvent} e
- * @param {Object} state
- * @param {HTMLElement} tweakpaneElement
- * @param {import('tweakpane').Pane} pane
+ * Detach all event listeners for drag.
+ * @param {HTMLElement} el Header element
+ * @param {Object} handlers Event handlers
+ * @param {Function} handlers.mouseDown
+ * @param {Function} handlers.mouseMove
+ * @param {Function} handlers.mouseUp
+ * @param {Function} handlers.click
+ * @param {Function} handlers.selectStart
  */
-function handleDragEnd(e, state, tweakpaneElement, pane) {
-  if (!state.isDragging) return
+function detachListeners(
+  el,
+  { mouseDown, mouseMove, mouseUp, click, selectStart }
+) {
+  const targets = [
+    el,
+    el.parentElement?.classList.contains('tp-lblv') && el.parentElement
+  ].filter(Boolean)
+  targets.forEach(t => t.removeEventListener('mousedown', mouseDown))
 
-  state.isDragging = false
-  tweakpaneElement.style.transition = ''
+  el.removeEventListener('selectstart', selectStart)
+  el.removeEventListener('dragstart', selectStart)
+  el.removeEventListener('click', click)
 
-  e.preventDefault()
-  e.stopPropagation()
-  e.stopImmediatePropagation()
-
-  requestAnimationFrame(() => {
-    if (pane) {
-      pane.expanded = true
-    } else {
-      ensurePaneExpanded(tweakpaneElement)
-    }
-  })
-
-  setTimeout(() => {
-    if (pane) {
-      pane.expanded = true
-    }
-  }, 0)
+  document.removeEventListener('mousemove', mouseMove)
+  document.removeEventListener('mouseup', mouseUp)
 }
 
 /**
- * Prevents click event from toggling pane after drag
- * @param {MouseEvent} e
- * @param {Object} state
- * @param {import('tweakpane').Pane} pane
+ * Clamp a number between min and max.
+ * @param {number} val Value to clamp
+ * @param {number} min Minimum
+ * @param {number} max Maximum
+ * @returns {number} Clamped value
  */
-function handleClickPrevention(e, state, pane) {
-  if (state.dragHappened) {
-    e.preventDefault()
-    e.stopPropagation()
-    e.stopImmediatePropagation()
-    state.dragHappened = false
-
-    if (pane) {
-      pane.expanded = true
-    }
-  }
-}
-
-/**
- * Manually ensures pane is expanded (fallback when no pane reference)
- * @param {HTMLElement} tweakpaneElement
- */
-function ensurePaneExpanded(tweakpaneElement) {
-  if (tweakpaneElement.classList.contains('tp-dfwv-c')) {
-    tweakpaneElement.classList.remove('tp-dfwv-c')
-    const rootView = tweakpaneElement.querySelector('.tp-rotv')
-    if (rootView) {
-      rootView.style.display = ''
-    }
-  }
-}
-
-/**
- * Attaches all event listeners
- * @param {HTMLElement} titleElement
- * @param {Object} handlers
- */
-function attachEventListeners(titleElement, handlers) {
-  titleElement.addEventListener('selectstart', handlers.preventSelect)
-  titleElement.addEventListener('dragstart', handlers.preventSelect)
-
-  titleElement.addEventListener('mousedown', handlers.dragStart, {
-    passive: false
-  })
-
-  const parent = titleElement.parentElement
-  if (parent?.classList.contains('tp-lblv')) {
-    parent.addEventListener('mousedown', handlers.dragStart, {
-      passive: false
-    })
-  }
-
-  document.addEventListener('mousemove', handlers.drag, { passive: false })
-  document.addEventListener('mouseup', handlers.dragEnd, { passive: false })
-
-  titleElement.addEventListener('click', handlers.preventClick, {
-    capture: true
-  })
-}
-
-/**
- * Removes all event listeners
- * @param {HTMLElement} titleElement
- * @param {Object} handlers
- */
-function removeEventListeners(titleElement, handlers) {
-  titleElement.removeEventListener('selectstart', handlers.preventSelect)
-  titleElement.removeEventListener('dragstart', handlers.preventSelect)
-  titleElement.removeEventListener('mousedown', handlers.dragStart)
-  titleElement.removeEventListener('click', handlers.preventClick)
-
-  const parent = titleElement.parentElement
-  if (parent?.classList.contains('tp-lblv')) {
-    parent.removeEventListener('mousedown', handlers.dragStart)
-  }
-
-  document.removeEventListener('mousemove', handlers.drag)
-  document.removeEventListener('mouseup', handlers.dragEnd)
+function clamp(val, min, max) {
+  return Math.min(Math.max(val, min), max)
 }
