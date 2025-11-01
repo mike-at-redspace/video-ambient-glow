@@ -1,30 +1,44 @@
 import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import tsEslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
+
+const sharedGlobals = {
+  window: 'readonly',
+  document: 'readonly',
+  HTMLVideoElement: 'readonly',
+  HTMLCanvasElement: 'readonly',
+  requestAnimationFrame: 'readonly',
+  cancelAnimationFrame: 'readonly',
+  console: 'readonly'
+}
+
+const jsExampleGlobals = {
+  ...sharedGlobals,
+  MutationObserver: 'readonly',
+  setTimeout: 'readonly',
+  clearTimeout: 'readonly',
+  setInterval: 'readonly',
+  clearInterval: 'readonly'
+}
 
 export default [
   js.configs.recommended,
-  ...tseslint.configs.recommended.map(config => ({
+
+  // TypeScript configs with file targeting
+  ...tsEslint.configs.recommended.map(config => ({
     ...config,
     files: ['src/**/*.ts', 'tests/**/*.ts']
   })),
+
   prettier,
+
+  // TypeScript specific rules
   {
     files: ['src/**/*.ts', 'tests/**/*.ts'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        HTMLVideoElement: 'readonly',
-        HTMLCanvasElement: 'readonly',
-        CanvasRenderingContext2D: 'readonly',
-        ImageData: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        console: 'readonly'
-      }
+      globals: sharedGlobals
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -34,30 +48,21 @@ export default [
       ]
     }
   },
+
+  // example rules
   {
     files: ['example/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        HTMLVideoElement: 'readonly',
-        HTMLCanvasElement: 'readonly',
-        MutationObserver: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        console: 'readonly'
-      }
+      globals: jsExampleGlobals
     },
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
     }
   },
+
+  // Ignored files
   {
     ignores: [
       'dist/',
