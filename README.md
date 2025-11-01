@@ -15,7 +15,7 @@ Inspired by YouTube's immersive glow, this tiny, zero-dependency library adds a 
 
 - 🎨 Extracts colors directly from the video
 - 🌊 Smooth frame blending for natural transitions
-- ⚡ Small bundle size (~5.4KB minified, ~2KB gzipped)
+- ⚡ Small bundle size (~16.8KB uncompressed, ~4.6KB gzipped)
 - 🎛️ Customizable blur, opacity, brightness, saturation
 - 📦 ESM + CJS, tree-shakeable
 - 🔒 Written in TypeScript with full types
