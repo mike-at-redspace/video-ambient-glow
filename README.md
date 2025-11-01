@@ -119,6 +119,102 @@ export function VideoPlayer({ src }: { src: string }) {
 }
 ```
 
+### Svelte Example
+
+```svelte
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte'
+  import { AmbientGlow } from 'video-ambient-glow'
+
+  export let src: string
+
+  let videoElement: HTMLVideoElement
+  let glow: AmbientGlow | null = null
+
+  onMount(() => {
+    if (videoElement) {
+      glow = new AmbientGlow(videoElement, { blur: 96, opacity: 0.65 })
+    }
+  })
+
+  onDestroy(() => {
+    glow?.destroy()
+  })
+</script>
+
+<video bind:this={videoElement} {src} controls />
+```
+
+### Angular Example
+
+```ts
+import {
+  Component,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+  Input,
+  ElementRef
+} from '@angular/core'
+import { AmbientGlow } from 'video-ambient-glow'
+
+@Component({
+  selector: 'app-video-player',
+  template: '<video #video [src]="src" controls></video>'
+})
+export class VideoPlayerComponent implements AfterViewInit, OnDestroy {
+  @Input() src!: string
+  @ViewChild('video', { static: false })
+  videoElement!: ElementRef<HTMLVideoElement>
+
+  private glow: AmbientGlow | null = null
+
+  ngAfterViewInit() {
+    if (this.videoElement?.nativeElement) {
+      this.glow = new AmbientGlow(this.videoElement.nativeElement, {
+        blur: 96,
+        opacity: 0.65
+      })
+    }
+  }
+
+  ngOnDestroy() {
+    this.glow?.destroy()
+  }
+}
+```
+
+### Vue.js Example
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { AmbientGlow } from 'video-ambient-glow'
+
+interface Props {
+  src: string
+}
+
+const props = defineProps<Props>()
+const videoElement = ref<HTMLVideoElement | null>(null)
+let glow: AmbientGlow | null = null
+
+onMounted(() => {
+  if (videoElement.value) {
+    glow = new AmbientGlow(videoElement.value, { blur: 96, opacity: 0.65 })
+  }
+})
+
+onUnmounted(() => {
+  glow?.destroy()
+})
+</script>
+
+<template>
+  <video ref="videoElement" :src="src" controls />
+</template>
+```
+
 ### Full Demo App
 
 ```bash
