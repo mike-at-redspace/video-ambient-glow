@@ -177,15 +177,6 @@ npm test
 npm run test:watch
 ```
 
-## Publishing
-
-```bash
-npm version patch|minor|major
-npm publish
-```
-
-Tests and builds run automatically before publish.
-
 ## License
 
 MIT © [video-ambient-glow contributors](LICENSE)
