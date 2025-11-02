@@ -81,7 +81,7 @@ export const TWEAKPANE_CONFIG = {
     min: 16,
     max: 2000,
     step: 16,
-    label: 'Update',
+    label: 'Update Freq',
     format: v => `${v}ms`
   },
   responsiveness: {
@@ -89,20 +89,6 @@ export const TWEAKPANE_CONFIG = {
     max: 1,
     step: 0.01,
     label: 'Responsiveness',
-    format: v => v.toFixed(2)
-  },
-  blur: {
-    min: 0,
-    max: 200,
-    step: 1,
-    label: 'Blur',
-    format: v => `${v}px`
-  },
-  opacity: {
-    min: 0,
-    max: 1,
-    step: 0.01,
-    label: 'Opacity',
     format: v => v.toFixed(2)
   },
   brightness: {
@@ -118,6 +104,20 @@ export const TWEAKPANE_CONFIG = {
     step: 0.05,
     label: 'Saturate',
     format: v => `${v.toFixed(2)}x`
+  },
+  opacity: {
+    min: 0,
+    max: 1,
+    step: 0.01,
+    label: 'Opacity',
+    format: v => v.toFixed(2)
+  },
+  blur: {
+    min: 0,
+    max: 200,
+    step: 1,
+    label: 'Blur',
+    format: v => `${v}px`
   }
 }
 
