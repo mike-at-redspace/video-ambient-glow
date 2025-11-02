@@ -519,23 +519,45 @@
 body#app,
 #app body {
   --font-google-sans-code: 'Google Sans Code', monospace !important;
-  .tp-rotv_t {
-    font-weight: 600;
-    font-family: var(--font-google-sans-code);
-  }
-  .tp-txtv_i {
-    font-weight: 300;
-    font-family: var(--font-google-sans-code);
-  }
+
+  /* Root visual tweaks */
   .tp-rotv {
     @apply backdrop-blur-3xl;
   }
 
-  /* Make title bar draggable */
+  /* Rotator value container */
+  .tp-rotv_b {
+    @apply h-fit pb-1;
+  }
+
+  /* Rotator title text */
+  .tp-rotv_t {
+    @apply p-0 cursor-move select-none;
+    font-family: var(--font-google-sans-code);
+    font-weight: 800;
+    font-size: 1.2rem;
+    font-variant: all-small-caps;
+  }
+
+  /* Text inputs */
+  .tp-txtv_i {
+    font-family: var(--font-google-sans-code);
+    font-weight: 300;
+  }
+
+  /* Label + button areas */
   .tp-dfwv .tp-lblv_l,
   .tp-dfwv .tp-lblv:first-child {
     font-family: var(--font-google-sans-code);
     font-weight: 500;
-    @apply cursor-move select-none;
+  }
+
+  /* Button labels inside label views */
+  .tp-lblv .tp-btnv_b {
+    @apply flex flex-col h-6;
+    font-family: var(--font-google-sans-code);
+    font-weight: 800;
+    font-size: 1.2rem;
+    font-variant: all-small-caps;
   }
 }

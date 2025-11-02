@@ -136,7 +136,7 @@ export const TWEAKPANE_CONFIG = {
  *
  * @constant {string}
  */
-export const TWEAKPANE_TITLE = 'Ambient Glow Settings'
+export const TWEAKPANE_TITLE = 'Ambient Glow Settings 🛠️'
 
 /**
  * Array of video source URLs from Pexels (free stock video).
