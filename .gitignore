@@ -6,3 +6,6 @@ coverage/
 .env
 .vscode/
 *.tsbuildinfo
+
+# Wiki repository (clone of GitHub wiki, managed by npm scripts)
+wiki-repo/
