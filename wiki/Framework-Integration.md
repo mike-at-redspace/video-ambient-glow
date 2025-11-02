@@ -1,5 +1,3 @@
-# Framework Integration
-
 Complete examples for integrating video-ambient-glow with popular JavaScript frameworks.
 
 ## React

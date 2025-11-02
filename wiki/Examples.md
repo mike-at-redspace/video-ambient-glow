@@ -1,5 +1,3 @@
-# Examples
-
 Practical examples and use cases for video-ambient-glow.
 
 ## Basic Usage

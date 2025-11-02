@@ -1,5 +1,3 @@
-# API Reference
-
 ## AmbientGlow Class
 
 The main class for creating and managing ambient glow effects on video elements.

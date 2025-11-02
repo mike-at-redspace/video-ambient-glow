@@ -1,5 +1,3 @@
-# video-ambient-glow
-
 **A lightweight TypeScript library that adds YouTube-style ambient glow effects to HTML5 video elements.**
 
 ## Overview
@@ -59,6 +57,7 @@ npm install video-ambient-glow
 ## Use Cases
 
 Perfect for:
+
 - Media players and video galleries
 - Streaming platforms
 - Marketing websites with video backgrounds
@@ -78,6 +77,7 @@ The effect automatically responds to video events (play, pause, seek) and viewpo
 ## Browser Support
 
 Works in all modern browsers that support:
+
 - HTML5 Video API
 - Canvas 2D Context
 - CSS Filters
@@ -85,4 +85,3 @@ Works in all modern browsers that support:
 ## License
 
 MIT License - See [LICENSE](../LICENSE) file for details.
-

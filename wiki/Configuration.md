@@ -1,5 +1,3 @@
-# Configuration
-
 Complete guide to all configuration options for customizing the ambient glow effect.
 
 ## Option Reference

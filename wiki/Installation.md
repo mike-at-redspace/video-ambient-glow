@@ -1,5 +1,3 @@
-# Installation
-
 ## npm
 
 ```bash
@@ -37,7 +35,7 @@ const { AmbientGlow } = require('video-ambient-glow')
 ```html
 <script type="module">
   import { AmbientGlow } from 'https://cdn.skypack.dev/video-ambient-glow'
-  
+
   const video = document.querySelector('video')
   const glow = new AmbientGlow(video)
 </script>
@@ -63,4 +61,3 @@ TypeScript type definitions are included in the package. No additional `@types` 
 ## Next Steps
 
 After installation, check out the [API Reference](API-Reference) to get started, or see [Framework Integration](Framework-Integration) for examples with your favorite framework.
-

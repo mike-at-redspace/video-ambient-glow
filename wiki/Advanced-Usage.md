@@ -1,5 +1,3 @@
-# Advanced Usage
-
 Advanced patterns, performance optimization, error handling, and edge cases.
 
 ## Performance Optimization
@@ -18,11 +16,11 @@ The three main performance parameters are:
 
 ```typescript
 const glow = new AmbientGlow(video, {
-  downscale: 0.04,        // Low resolution sampling
-  updateInterval: 1500,   // Update every 1.5 seconds
-  blendOld: 0.9,          // Very smooth transitions
+  downscale: 0.04, // Low resolution sampling
+  updateInterval: 1500, // Update every 1.5 seconds
+  blendOld: 0.9, // Very smooth transitions
   blendNew: 0.1,
-  blur: 70                // Slightly reduced blur
+  blur: 70 // Slightly reduced blur
 })
 ```
 
@@ -33,9 +31,9 @@ const glow = new AmbientGlow(video, {
 
 ```typescript
 const glow = new AmbientGlow(video, {
-  downscale: 0.15,        // Higher resolution sampling
-  updateInterval: 500,    // Update every 500ms
-  blendOld: 0.7,          // More reactive transitions
+  downscale: 0.15, // Higher resolution sampling
+  updateInterval: 500, // Update every 500ms
+  blendOld: 0.7, // More reactive transitions
   blendNew: 0.3,
   blur: 120
 })
@@ -120,7 +118,7 @@ if (monitor.getFPS() < 30) {
 
 ```typescript
 const video = document.createElement('video')
-video.crossOrigin = 'anonymous'  // Required for cross-origin sources
+video.crossOrigin = 'anonymous' // Required for cross-origin sources
 video.src = 'https://example.com/video.mp4'
 
 document.body.appendChild(video)
@@ -143,7 +141,9 @@ const glow = new AmbientGlow(video)
 const originalWarn = console.warn
 console.warn = (...args) => {
   if (args[0]?.includes?.('canvas') || args[0]?.includes?.('CORS')) {
-    console.error('CORS error detected. Video must be served with proper CORS headers.')
+    console.error(
+      'CORS error detected. Video must be served with proper CORS headers.'
+    )
     // Optionally disable glow or show fallback
   }
   originalWarn.apply(console, args)
@@ -187,7 +187,7 @@ function createSafeGlow(video: HTMLVideoElement, options = {}) {
     const glow = new AmbientGlow(video, options)
 
     // Handle video errors
-    video.addEventListener('error', (e) => {
+    video.addEventListener('error', e => {
       console.error('Video error:', e)
       // Don't destroy glow - it will handle gracefully
     })
@@ -195,7 +195,9 @@ function createSafeGlow(video: HTMLVideoElement, options = {}) {
     // Handle CORS issues
     video.addEventListener('loadstart', () => {
       if (!video.crossOrigin && video.src.startsWith('http')) {
-        console.warn('Consider setting crossOrigin="anonymous" for cross-origin videos')
+        console.warn(
+          'Consider setting crossOrigin="anonymous" for cross-origin videos'
+        )
       }
     })
 
@@ -226,7 +228,7 @@ function createGlowWithFallback(video: HTMLVideoElement) {
     // Fallback: Add a simple CSS-based glow
     video.style.boxShadow = '0 0 60px rgba(128, 128, 128, 0.3)'
     video.style.filter = 'drop-shadow(0 0 20px rgba(128, 128, 128, 0.2))'
-    
+
     return {
       updateOptions: () => {},
       destroy: () => {
@@ -252,7 +254,7 @@ class VideoManager {
   constructor(video: HTMLVideoElement) {
     this.video = video
     this.glow = new AmbientGlow(video, { blur: 96, opacity: 0.65 })
-    
+
     this.setupListeners()
   }
 
@@ -287,7 +289,7 @@ class VideoManager {
 function setupVideoWithSources(video: HTMLVideoElement, sources: string[]) {
   const glow = new AmbientGlow(video)
 
-  sources.forEach((src) => {
+  sources.forEach(src => {
     const sourceElement = document.createElement('source')
     sourceElement.src = src
     sourceElement.type = `video/${src.split('.').pop()}`
@@ -338,12 +340,12 @@ class GlowStateManager {
   save(glow: AmbientGlow) {
     // Note: You'll need to extend AmbientGlow or track settings separately
     const settings: GlowSettings = {
-      blur: 96,  // Get current values from your state
+      blur: 96, // Get current values from your state
       opacity: 0.65,
       brightness: 1.1,
       saturate: 1.2
     }
-    
+
     localStorage.setItem(this.storageKey, JSON.stringify(settings))
   }
 
@@ -390,7 +392,7 @@ class MultiVideoGlowManager {
     const glow = new AmbientGlow(video, options)
     this.glows.set(video, glow)
     this.settings.set(video, { ...options })
-    
+
     return glow
   }
 
@@ -413,13 +415,13 @@ class MultiVideoGlowManager {
   }
 
   updateAll(options: any) {
-    this.glows.forEach((glow) => {
+    this.glows.forEach(glow => {
       glow.updateOptions(options)
     })
   }
 
   destroyAll() {
-    this.glows.forEach((glow) => glow.destroy())
+    this.glows.forEach(glow => glow.destroy())
     this.glows.clear()
     this.settings.clear()
   }
@@ -454,7 +456,7 @@ function createDebugGlow(video: HTMLVideoElement, options = {}) {
   if (canvas) {
     canvas.style.border = '2px solid red'
     canvas.style.opacity = '0.5'
-    
+
     // Remove debug styling after a moment
     setTimeout(() => {
       canvas.style.border = ''
@@ -528,4 +530,3 @@ player.on('destroy', () => {
   glow?.destroy()
 })
 ```
-
