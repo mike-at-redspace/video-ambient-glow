@@ -24,8 +24,7 @@ import {
   getCanvasContext,
   updateCanvasFilterStyles,
   ensureParentPositioning,
-  drawAndBlendFrame,
-  createVideoEventHandlers
+  drawAndBlendFrame
 } from './lib'
 
 /**
@@ -61,6 +60,8 @@ export class AmbientGlow {
   private boundHandlers: Map<string, EventListener> = new Map()
   private isDestroyed = false
   private resizeObserver: ResizeObserver | null = null
+  private intersectionObserver: IntersectionObserver | null = null
+  private isVisible = true
 
   /**
    * Creates a glow instance attached to a video element.
@@ -82,7 +83,7 @@ export class AmbientGlow {
    */
   constructor(video: HTMLVideoElement, options: GlowOptions = {}) {
     this.video = video
-    this.options = { ...DEFAULT_OPTIONS, ...options }
+    this.options = this.normalizeOptions(options)
 
     this.canvas = createGlowCanvas(this.options)
     this.ctx = getCanvasContext(this.canvas, 'canvas')
@@ -105,6 +106,24 @@ export class AmbientGlow {
   }
 
   /**
+   * Normalizes options, converting responsiveness to blendOld/blendNew if set.
+   *
+   * @param options - Options to normalize.
+   * @returns Normalized options with all required fields.
+   */
+  private normalizeOptions(options: GlowOptions): NormalizedGlowOptions {
+    const normalized = { ...DEFAULT_OPTIONS, ...options }
+
+    // If responsiveness is set, override blendOld and blendNew
+    if (options.responsiveness !== undefined) {
+      normalized.blendNew = options.responsiveness
+      normalized.blendOld = 1 - options.responsiveness
+    }
+
+    return normalized
+  }
+
+  /**
    * Applies CSS filters (blur, brightness, etc.) to the canvas.
    */
   private applyFilterStyles(): void {
@@ -115,30 +134,67 @@ export class AmbientGlow {
    * Sets up video/resize event listeners (stored for cleanup).
    */
   private setupEventListeners(): void {
-    const videoEventHandlers = createVideoEventHandlers({
-      onLoadStart: () => this.handleLoadStart(),
-      onLoadedMetadata: () => this.handleLoadedMetadata(),
-      onCanPlay: () => this.handleCanPlay(),
-      onPlay: () => this.handlePlay(),
-      onPause: () => this.handlePause(),
-      onEnded: () => this.handleEnded(),
-      onSeeked: () => this.handleSeeked()
-    })
+    // Bind methods and store them
+    this.boundHandlers.set('loadstart', this.handleLoadStart.bind(this))
+    this.boundHandlers.set(
+      'loadedmetadata',
+      this.handleLoadedMetadata.bind(this)
+    )
+    this.boundHandlers.set('canplay', this.handleCanPlay.bind(this))
+    this.boundHandlers.set('play', this.handlePlay.bind(this))
+    this.boundHandlers.set('pause', this.handlePause.bind(this))
+    this.boundHandlers.set('ended', this.handleEnded.bind(this))
+    this.boundHandlers.set('seeked', this.handleSeeked.bind(this))
 
-    videoEventHandlers.forEach(([event, handler]: [string, EventListener]) => {
-      this.boundHandlers.set(event, handler)
+    this.boundHandlers.forEach((handler, event) => {
       this.video.addEventListener(event, handler)
     })
 
     // Use ResizeObserver for better performance if available
     if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(() => this.debouncedResize())
+      this.resizeObserver = new ResizeObserver(this.debouncedResize.bind(this))
       this.resizeObserver.observe(this.video)
     } else {
       // Fallback to window resize
-      const resizeHandler = () => this.debouncedResize()
+      const resizeHandler = this.debouncedResize.bind(this)
       this.boundHandlers.set('resize', resizeHandler)
       window.addEventListener('resize', resizeHandler)
+    }
+
+    // Use IntersectionObserver to pause animation when video is out of view
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.intersectionObserver = new IntersectionObserver(
+        entries => {
+          if (this.isDestroyed) return
+          const entry = entries[0]
+          this.isVisible = entry.isIntersecting
+          this.handleVisibilityChange()
+        },
+        { threshold: 0 }
+      )
+      this.intersectionObserver.observe(this.video)
+    }
+  }
+
+  /**
+   * Handles visibility changes from IntersectionObserver.
+   * Pauses animation when out of view, resumes when back in view (if playing).
+   */
+  private handleVisibilityChange(): void {
+    if (this.isDestroyed) return
+
+    if (!this.isVisible) {
+      // Out of view - pause animation loop
+      this.isLooping = false
+    } else if (!this.video.paused && !this.video.ended) {
+      // Back in view and playing - resume animation loop
+      this.isLooping = true
+      if (!this.animationFrameId) {
+        this.lastUpdateTime = 0
+        this.animationFrameId = requestAnimationFrame(t =>
+          this.animationLoop(t)
+        )
+      }
     }
   }
 
@@ -223,7 +279,9 @@ export class AmbientGlow {
       this.lastImage = null
     }
 
+    const cssWidth = rect.width * scale
     const cssHeight = rect.height * scale
+    this.canvas.style.width = `${cssWidth}px`
     this.canvas.style.height = `${cssHeight}px`
   }
 
@@ -309,7 +367,8 @@ export class AmbientGlow {
       return
     }
 
-    this.options = { ...this.options, ...newOptions }
+    // Normalize options to handle responsiveness
+    this.options = this.normalizeOptions({ ...this.options, ...newOptions })
     this.applyFilterStyles()
 
     if (newOptions.downscale !== undefined || newOptions.scale !== undefined) {
@@ -352,6 +411,11 @@ export class AmbientGlow {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
       this.resizeObserver = null
+    }
+
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect()
+      this.intersectionObserver = null
     }
 
     this.boundHandlers.forEach((handler, event) => {

@@ -65,8 +65,9 @@ interface GlowOptions {
   scale?: number // canvas scale, default: 1.08
   downscale?: number // sampling 0.01–0.5, default: 0.08
   updateInterval?: number // in ms, default: 900
-  blendOld?: number // old frame weight, default: 0.85
-  blendNew?: number // new frame weight, default: 0.15
+  blendOld?: number // old frame weight, default: 0.85 (ignored if responsiveness is set)
+  blendNew?: number // new frame weight, default: 0.15 (ignored if responsiveness is set)
+  responsiveness?: number // 0.0–1.0, simplified blending control, default: undefined. Higher = more responsive to changes. Overrides blendOld/blendNew when set.
 }
 ```
 
@@ -255,8 +256,8 @@ Modular, typed, and easy to extend.
 
 - Lower `downscale` for faster performance
 - Increase `updateInterval` to save CPU
-- Tune `blendOld`/`blendNew` for smoother or snappier color shifts
-- Auto-pauses when the video stops
+- Use `responsiveness` for simple blending control, or tune `blendOld`/`blendNew` for fine-grained control
+- Auto-pauses when the video stops or scrolls out of view (uses IntersectionObserver)
 
 ## Development
 

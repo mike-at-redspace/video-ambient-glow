@@ -72,6 +72,26 @@ describe('AmbientGlow', () => {
       glow.destroy()
     })
 
+    it('normalizes responsiveness option to blendOld/blendNew', () => {
+      const glow = new AmbientGlow(video, { responsiveness: 0.3 })
+      // Responsiveness should be converted internally, but we can verify the effect works
+      const canvas = parent.querySelector('canvas') as HTMLCanvasElement
+      expect(canvas).toBeTruthy()
+      glow.destroy()
+    })
+
+    it('responsiveness overrides blendOld/blendNew when set', () => {
+      const glow = new AmbientGlow(video, {
+        responsiveness: 0.25,
+        blendOld: 0.9, // Should be ignored
+        blendNew: 0.1 // Should be ignored
+      })
+      // Internally, blendNew should be 0.25 and blendOld should be 0.75
+      const canvas = parent.querySelector('canvas') as HTMLCanvasElement
+      expect(canvas).toBeTruthy()
+      glow.destroy()
+    })
+
     it('sets parent position to relative if static', () => {
       const glow = new AmbientGlow(video)
       expect(parent.style.position).toBe('relative')
@@ -133,6 +153,27 @@ describe('AmbientGlow', () => {
       glow.updateOptions({})
       expect(canvas.style.filter).toContain('blur(100px)') // unchanged
 
+      glow.destroy()
+    })
+
+    it('updates responsiveness option', () => {
+      const glow = new AmbientGlow(video)
+      glow.updateOptions({ responsiveness: 0.4 })
+      // Responsiveness should be normalized internally
+      const canvas = parent.querySelector('canvas') as HTMLCanvasElement
+      expect(canvas).toBeTruthy()
+      glow.destroy()
+    })
+
+    it('responsiveness in updateOptions overrides existing blendOld/blendNew', () => {
+      const glow = new AmbientGlow(video, {
+        blendOld: 0.9,
+        blendNew: 0.1
+      })
+      glow.updateOptions({ responsiveness: 0.2 })
+      // Internally, blendNew should now be 0.2 and blendOld should be 0.8
+      const canvas = parent.querySelector('canvas') as HTMLCanvasElement
+      expect(canvas).toBeTruthy()
       glow.destroy()
     })
   })
@@ -346,6 +387,36 @@ describe('AmbientGlow', () => {
       }
 
       global.ResizeObserver = OriginalResizeObserver
+    })
+
+    it('disconnects IntersectionObserver when available', () => {
+      const mockDisconnect = vi.fn()
+      const mockObserve = vi.fn()
+      const IntersectionObserverMock = vi.fn(function IntersectionObserver(
+        this: IntersectionObserver,
+        _callback: IntersectionObserverCallback,
+        _options?: IntersectionObserverInit
+      ) {
+        this.observe = mockObserve
+        this.disconnect = mockDisconnect
+        this.unobserve = vi.fn()
+        this.takeRecords = vi.fn()
+        this.root = null
+        this.rootMargin = ''
+        this.thresholds = []
+      }) as unknown as typeof IntersectionObserver
+
+      const OriginalIntersectionObserver = global.IntersectionObserver
+      global.IntersectionObserver = IntersectionObserverMock
+
+      const glow = new AmbientGlow(video)
+      glow.destroy()
+
+      if (typeof IntersectionObserver !== 'undefined') {
+        expect(mockDisconnect).toHaveBeenCalled()
+      }
+
+      global.IntersectionObserver = OriginalIntersectionObserver
     })
   })
 

@@ -50,15 +50,24 @@ export interface GlowOptions {
   /**
    * Blend weight for previous frame (0-1). Higher = smoother transitions.
    * Note: blendOld + blendNew should usually equal 1.
+   * Ignored if `responsiveness` is set.
    * @defaultValue 0.85
    */
   blendOld?: number
   /**
    * Blend weight for new frame (0-1). Higher = faster reaction to changes.
    * Note: blendOld + blendNew should usually equal 1.
+   * Ignored if `responsiveness` is set.
    * @defaultValue 0.15
    */
   blendNew?: number
+  /**
+   * Simplified blending control (0.0-1.0). Higher = more responsive to changes.
+   * Internally sets `blendNew = responsiveness` and `blendOld = 1 - responsiveness`.
+   * Overrides `blendOld` and `blendNew` when set.
+   * @defaultValue undefined
+   */
+  responsiveness?: number
 }
 
 /**

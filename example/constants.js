@@ -34,8 +34,7 @@ export const DOM_IDS = {
  * @property {number} scale - Canvas scale relative to video
  * @property {number} downscale - Video downscale factor for sampling
  * @property {number} updateInterval - Frame update interval in milliseconds
- * @property {number} blendOld - Blend weight for previous frame (0-1)
- * @property {number} blendNew - Blend weight for new frame (0-1)
+ * @property {number} responsiveness - Simplified blending control (0.0-1.0). Higher = more responsive. Overrides blendOld/blendNew when set.
  */
 export const DEFAULT_GLOW_PARAMS = {
   blur: 96,
@@ -45,8 +44,7 @@ export const DEFAULT_GLOW_PARAMS = {
   scale: 1.08,
   downscale: 0.08,
   updateInterval: 900,
-  blendOld: 0.85,
-  blendNew: 0.15
+  responsiveness: 0.15
 }
 
 /**
@@ -58,8 +56,7 @@ export const DEFAULT_GLOW_PARAMS = {
  * @property {Object} scale - Scale control configuration
  * @property {Object} downscale - Quality/downscale control configuration
  * @property {Object} updateInterval - Update interval control configuration
- * @property {Object} blendOld - Blend old frame control configuration
- * @property {Object} blendNew - Blend new frame control configuration
+ * @property {Object} responsiveness - Responsiveness control configuration
  * @property {Object} blur - Blur control configuration (formatted as px)
  * @property {Object} opacity - Opacity control configuration (formatted as decimal)
  * @property {Object} brightness - Brightness control configuration (formatted as multiplier)
@@ -87,18 +84,11 @@ export const TWEAKPANE_CONFIG = {
     label: 'Update',
     format: v => `${v}ms`
   },
-  blendOld: {
+  responsiveness: {
     min: 0,
     max: 1,
     step: 0.01,
-    label: 'Blend Old',
-    format: v => v.toFixed(2)
-  },
-  blendNew: {
-    min: 0,
-    max: 1,
-    step: 0.01,
-    label: 'Blend New',
+    label: 'Responsiveness',
     format: v => v.toFixed(2)
   },
   blur: {
