@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch: # Allow manual triggering
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,7 +19,7 @@ jobs:
   format-check:
     name: 📝 Format Check
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
 
@@ -27,9 +28,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - run: npm run format:check
+      - name: Check formatting
+        run: npm run format:check
 
   lint:
     name: 🔍 Lint
@@ -43,14 +46,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - run: npm run lint:ci
+      - name: Run linter
+        run: npm run lint:ci
 
   type-check:
     name: 📘 Type Check
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
 
@@ -59,14 +64,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - run: npx tsc --noEmit
+      - name: Run type check
+        run: npx tsc --noEmit
 
   test:
     name: 🧪 Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
 
@@ -75,16 +82,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - run: npm test
+      - name: Run tests
+        run: npm test
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: test-coverage-${{ github.sha }}
           path: coverage/
-          retention-days: 7
+          retention-days: 3
+          if-no-files-found: warn
 
   build:
     name: 🏗️ Build
@@ -99,45 +110,74 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - run: npm run build
+      - name: Build project
+        run: npm run build
 
       - name: Verify build artifacts
         run: |
+          echo "Checking build artifacts..."
+          missing=0
           for file in dist/index.js dist/index.cjs dist/index.d.ts; do
-            [ -f "$file" ] || { echo "❌ $file not found"; exit 1; }
+            if [ -f "$file" ]; then
+              echo "✅ $file"
+            else
+              echo "❌ $file not found"
+              missing=1
+            fi
           done
+
+          if [ $missing -eq 1 ]; then
+            exit 1
+          fi
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "✅ All build artifacts verified"
 
       - name: Report bundle sizes
         run: |
+          echo "📦 Bundle Size Analysis"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          # Calculate sizes
           ESM_SIZE=$(stat -c%s dist/index.js)
           CJS_SIZE=$(stat -c%s dist/index.cjs)
           ESM_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_SIZE/1024}")
           CJS_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_SIZE/1024}")
-          ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $(gzip -c dist/index.js | wc -c)/1024}")
-          CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $(gzip -c dist/index.cjs | wc -c)/1024}")
+          ESM_GZIP=$(gzip -c dist/index.js | wc -c)
+          CJS_GZIP=$(gzip -c dist/index.cjs | wc -c)
+          ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_GZIP/1024}")
+          CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_GZIP/1024}")
 
-          cat <<EOF
-          📦 Bundle Sizes
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          ESM (index.js):       ${ESM_KB} KB (${ESM_GZIP_KB} KB gzipped)
-          CommonJS (index.cjs):  ${CJS_KB} KB (${CJS_GZIP_KB} KB gzipped)
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          EOF
+          # Display results
+          printf "%-25s %8s KB (%6s KB gzipped)\n" "ESM (index.js):" "$ESM_KB" "$ESM_GZIP_KB"
+          printf "%-25s %8s KB (%6s KB gzipped)\n" "CommonJS (index.cjs):" "$CJS_KB" "$CJS_GZIP_KB"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      - uses: actions/upload-artifact@v4
+          # Create job summary
+          {
+            echo "## 📦 Bundle Size Report"
+            echo ""
+            echo "| Format | Size | Gzipped |"
+            echo "|--------|------|---------|"
+            echo "| ESM | ${ESM_KB} KB | ${ESM_GZIP_KB} KB |"
+            echo "| CommonJS | ${CJS_KB} KB | ${CJS_GZIP_KB} KB |"
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: build-output
+          name: build-output-${{ github.sha }}
           path: dist/
           retention-days: 3
 
   build-example:
     name: 🎨 Build Example
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: build
+    timeout-minutes: 3
+    needs: [format-check, lint, type-check, test, build]
     steps:
       - uses: actions/checkout@v4
 
@@ -146,19 +186,37 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci --prefer-offline --no-audit
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - uses: actions/download-artifact@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: build-output
+          name: build-output-${{ github.sha }}
           path: dist/
 
-      - run: npm run build:example
+      - name: Build example
+        run: npm run build:example
 
       - name: Verify example build
         run: |
-          [ -f "example/dist/index.html" ] || { echo "❌ example/dist/index.html not found"; exit 1; }
-          echo "✅ Example build verified"
+          if [ -f "example/dist/index.html" ]; then
+            echo "✅ example/dist/index.html verified"
+            
+            # Get example size info
+            EXAMPLE_SIZE=$(du -sh example/dist 2>/dev/null | cut -f1 || echo "unknown")
+            echo "📊 Example build size: $EXAMPLE_SIZE"
+          else
+            echo "❌ example/dist/index.html not found"
+            exit 1
+          fi
+
+      - name: Upload example build
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-build-${{ github.sha }}
+          path: example/dist/
+          retention-days: 3
 
   ci-summary:
     name: ✅ CI Summary
@@ -166,55 +224,80 @@ jobs:
     needs: [format-check, lint, type-check, test, build, build-example]
     if: always()
     steps:
-      - name: Print CI summary
+      - name: Generate CI summary
         run: |
+          echo "# 🎯 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Terminal output
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "CI Summary"
+          echo "CI Pipeline Summary"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           failed=0
 
           if [ "${{ needs.format-check.result }}" = "success" ]; then
             echo "  ✅ Format"
+            echo "| Format | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Format"
+            echo "| Format | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           if [ "${{ needs.lint.result }}" = "success" ]; then
             echo "  ✅ Lint"
+            echo "| Lint | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Lint"
+            echo "| Lint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           if [ "${{ needs.type-check.result }}" = "success" ]; then
             echo "  ✅ Types"
+            echo "| Types | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Types"
+            echo "| Types | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           if [ "${{ needs.test.result }}" = "success" ]; then
             echo "  ✅ Tests"
+            echo "| Tests | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Tests"
+            echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           if [ "${{ needs.build.result }}" = "success" ]; then
             echo "  ✅ Build"
+            echo "| Build | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Build"
+            echo "| Build | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           if [ "${{ needs.build-example.result }}" = "success" ]; then
             echo "  ✅ Example"
+            echo "| Example | ✅ Success |" >> $GITHUB_STEP_SUMMARY
           else
             echo "  ❌ Example"
+            echo "| Example | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
             failed=1
           fi
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          exit $failed
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ $failed -eq 1 ]; then
+            echo "**❌ Pipeline Failed**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "**✅ All Jobs Passed**" >> $GITHUB_STEP_SUMMARY
+          fi

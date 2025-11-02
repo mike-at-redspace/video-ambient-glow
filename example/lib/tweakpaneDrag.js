@@ -26,6 +26,9 @@ export function makeTweakpaneDraggable(pane = null) {
     mouseDown: e => startDrag(e, state, paneEl, headerEl, pane),
     mouseMove: e => drag(e, state, paneEl, pane),
     mouseUp: e => endDrag(e, state, paneEl, pane),
+    touchStart: e => startDragTouch(e, state, paneEl, headerEl, pane),
+    touchMove: e => dragTouch(e, state, paneEl, pane),
+    touchEnd: e => endDragTouch(e, state, paneEl, pane),
     click: e => preventClickAfterDrag(e, state, pane),
     selectStart: e => e.preventDefault()
   }
@@ -72,18 +75,19 @@ function setupDraggableStyles(el) {
 }
 
 /**
- * Check if a mouse event target is valid for drag start.
- * @param {MouseEvent} e Mouse event
+ * Check if a mouse or touch event target is valid for drag start.
+ * @param {MouseEvent|TouchEvent} e Mouse or touch event
  * @param {HTMLElement} el Header element
  * @returns {boolean} True if drag can start
  */
 function isValidTarget(e, el) {
   const parent = el.parentElement
+  const target = e.target
   return (
-    e.target === el ||
-    el.contains(e.target) ||
+    target === el ||
+    el.contains(target) ||
     (parent?.classList.contains('tp-lblv') &&
-      (e.target === parent || parent.contains(e.target)))
+      (target === parent || parent.contains(target)))
   )
 }
 
@@ -105,6 +109,33 @@ function startDrag(e, state, paneEl, el, pane) {
     moved: false,
     startX: e.clientX,
     startY: e.clientY
+  })
+
+  const rect = paneEl.getBoundingClientRect()
+  state.left = rect.left
+  state.bottom = window.innerHeight - rect.bottom
+  paneEl.style.transition = 'none'
+}
+
+/**
+ * Handle touch drag start event.
+ * @param {TouchEvent} e Touch event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {HTMLElement} el Header element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ */
+function startDragTouch(e, state, paneEl, el, pane) {
+  if (!isValidTarget(e, el) || e.touches.length !== 1) return
+  e.preventDefault()
+
+  const touch = e.touches[0]
+  expandPane(pane)
+  Object.assign(state, {
+    dragging: true,
+    moved: false,
+    startX: touch.clientX,
+    startY: touch.clientY
   })
 
   const rect = paneEl.getBoundingClientRect()
@@ -138,6 +169,31 @@ function drag(e, state, paneEl, pane) {
 }
 
 /**
+ * Handle touch drag movement.
+ * @param {TouchEvent} e Touch event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ */
+function dragTouch(e, state, paneEl, pane) {
+  if (!state.dragging || e.touches.length !== 1) return
+  e.preventDefault()
+
+  const touch = e.touches[0]
+  const dx = touch.clientX - state.startX
+  const dy = touch.clientY - state.startY
+
+  if (!state.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) state.moved = true
+  expandPane(pane)
+
+  const rect = paneEl.getBoundingClientRect()
+  paneEl.style.left = `${clamp(state.left + dx, 0, window.innerWidth - rect.width)}px`
+  paneEl.style.bottom = `${clamp(state.bottom - dy, 0, window.innerHeight - rect.height)}px`
+  paneEl.style.top = 'auto'
+  paneEl.style.right = 'auto'
+}
+
+/**
  * Handle drag end.
  * @param {MouseEvent} e Mouse event
  * @param {Object} state Drag state
@@ -145,6 +201,21 @@ function drag(e, state, paneEl, pane) {
  * @param {import('tweakpane').Pane|null} pane Optional pane instance
  */
 function endDrag(e, state, paneEl, pane) {
+  if (!state.dragging) return
+  state.dragging = false
+  paneEl.style.transition = ''
+  e.preventDefault()
+  requestAnimationFrame(() => expandPane(pane) || ensureExpanded(paneEl))
+}
+
+/**
+ * Handle touch drag end.
+ * @param {TouchEvent} e Touch event
+ * @param {Object} state Drag state
+ * @param {HTMLElement} paneEl Tweakpane element
+ * @param {import('tweakpane').Pane|null} pane Optional pane instance
+ */
+function endDragTouch(e, state, paneEl, pane) {
   if (!state.dragging) return
   state.dragging = false
   paneEl.style.transition = ''
@@ -193,20 +264,33 @@ function expandPane(pane) {
  * @param {Function} handlers.mouseDown
  * @param {Function} handlers.mouseMove
  * @param {Function} handlers.mouseUp
+ * @param {Function} handlers.touchStart
+ * @param {Function} handlers.touchMove
+ * @param {Function} handlers.touchEnd
  * @param {Function} handlers.click
  * @param {Function} handlers.selectStart
  */
 function attachListeners(
   el,
-  { mouseDown, mouseMove, mouseUp, click, selectStart }
+  {
+    mouseDown,
+    mouseMove,
+    mouseUp,
+    touchStart,
+    touchMove,
+    touchEnd,
+    click,
+    selectStart
+  }
 ) {
   const targets = [
     el,
     el.parentElement?.classList.contains('tp-lblv') && el.parentElement
   ].filter(Boolean)
-  targets.forEach(t =>
+  targets.forEach(t => {
     t.addEventListener('mousedown', mouseDown, { passive: false })
-  )
+    t.addEventListener('touchstart', touchStart, { passive: false })
+  })
 
   el.addEventListener('selectstart', selectStart)
   el.addEventListener('dragstart', selectStart)
@@ -214,6 +298,9 @@ function attachListeners(
 
   document.addEventListener('mousemove', mouseMove, { passive: false })
   document.addEventListener('mouseup', mouseUp, { passive: false })
+  document.addEventListener('touchmove', touchMove, { passive: false })
+  document.addEventListener('touchend', touchEnd, { passive: false })
+  document.addEventListener('touchcancel', touchEnd, { passive: false })
 }
 
 /**
@@ -223,18 +310,33 @@ function attachListeners(
  * @param {Function} handlers.mouseDown
  * @param {Function} handlers.mouseMove
  * @param {Function} handlers.mouseUp
+ * @param {Function} handlers.touchStart
+ * @param {Function} handlers.touchMove
+ * @param {Function} handlers.touchEnd
  * @param {Function} handlers.click
  * @param {Function} handlers.selectStart
  */
 function detachListeners(
   el,
-  { mouseDown, mouseMove, mouseUp, click, selectStart }
+  {
+    mouseDown,
+    mouseMove,
+    mouseUp,
+    touchStart,
+    touchMove,
+    touchEnd,
+    click,
+    selectStart
+  }
 ) {
   const targets = [
     el,
     el.parentElement?.classList.contains('tp-lblv') && el.parentElement
   ].filter(Boolean)
-  targets.forEach(t => t.removeEventListener('mousedown', mouseDown))
+  targets.forEach(t => {
+    t.removeEventListener('mousedown', mouseDown)
+    t.removeEventListener('touchstart', touchStart)
+  })
 
   el.removeEventListener('selectstart', selectStart)
   el.removeEventListener('dragstart', selectStart)
@@ -242,6 +344,9 @@ function detachListeners(
 
   document.removeEventListener('mousemove', mouseMove)
   document.removeEventListener('mouseup', mouseUp)
+  document.removeEventListener('touchmove', touchMove)
+  document.removeEventListener('touchend', touchEnd)
+  document.removeEventListener('touchcancel', touchEnd)
 }
 
 /**

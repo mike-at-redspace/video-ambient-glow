@@ -17,4 +17,8 @@ alwaysApply: true
 - Import types from source: `import type { GlowOptions } from '../src/types'`
 - Test public API methods: constructor, `updateOptions()`, `destroy()`, `getIsDestroyed()`
 - Use `vi` from vitest for mocking (not jest mocks)
-- @file tests/unit.test.ts
+- @file tests/unit.test.ts - Main AmbientGlow class tests
+- @file tests/integration.test.ts - Integration tests
+- @file tests/canvas.test.ts - Canvas utilities
+- @file tests/eventHandlers.test.ts - Event handler utilities
+- @file tests/frameProcessor.test.ts - Frame processing utilities
