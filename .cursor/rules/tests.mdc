@@ -1,0 +1,20 @@
+---
+description: Test files using Vitest with happy-dom environment
+globs: ['tests/**']
+alwaysApply: true
+---
+
+- Use Vitest (`describe`, `it`, `expect`, `beforeEach`, `afterEach`, `vi`)
+- Test environment: happy-dom (configured in vitest.config.ts)
+- Always clean up DOM in `afterEach` with `document.body.innerHTML = ''`
+- Clean up `AmbientGlow` instances with `destroy()` in `afterEach`
+- Group related tests with `describe` blocks
+- Use descriptive test names: `it('should...', ...)`
+- Test both success and error cases (e.g., video without parent)
+- Use `expect().toThrow()` for error testing with specific error message matching
+- Mock `requestAnimationFrame` when testing animation loops if needed
+- Setup DOM elements in `beforeEach` - create parent, video, append to body
+- Import types from source: `import type { GlowOptions } from '../src/types'`
+- Test public API methods: constructor, `updateOptions()`, `destroy()`, `getIsDestroyed()`
+- Use `vi` from vitest for mocking (not jest mocks)
+- @file tests/unit.test.ts

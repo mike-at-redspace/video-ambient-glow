@@ -1,0 +1,13 @@
+---
+description: Build and utility scripts
+globs: ["scripts/**"]
+alwaysApply: true
+---
+
+- Use bash scripts for shell operations
+- Add shebang: `#!/bin/bash` or `#!/usr/bin/env bash`
+- Make scripts executable if needed
+- Use relative paths and handle errors appropriately
+- Scripts should be idempotent when possible
+- Document what scripts do in comments
+- @file scripts/publish-wiki.sh
