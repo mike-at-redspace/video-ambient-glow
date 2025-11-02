@@ -4,7 +4,7 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM"],
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,

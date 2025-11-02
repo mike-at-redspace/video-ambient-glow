@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "dev": "rollup -c -w",
-    "build": "rollup -c",
+    "build": "NODE_ENV=production rollup -c",
     "build:example": "npm run build && cd example && npm install && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -52,6 +52,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^24.9.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
