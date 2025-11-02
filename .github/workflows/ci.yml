@@ -1,4 +1,4 @@
-name: CI
+name: Lint, Test & Build
 
 on:
   push:
@@ -6,17 +6,215 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  FORCE_COLOR: 1
+
 jobs:
-  test:
+  format-check:
+    name: 📝 Format Check
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
       - run: npm run format:check
+
+  lint:
+    name: 🔍 Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
+      - run: npm run lint:ci
+
+  type-check:
+    name: 📘 Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
+      - run: npx tsc --noEmit
+
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
       - run: npm test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: 🏗️ Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [format-check, lint, type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
       - run: npm run build
+
+      - name: Verify build artifacts
+        run: |
+          for file in dist/index.js dist/index.cjs dist/index.d.ts; do
+            [ -f "$file" ] || { echo "❌ $file not found"; exit 1; }
+          done
+          echo "✅ All build artifacts verified"
+
+      - name: Report bundle sizes
+        run: |
+          ESM_SIZE=$(stat -c%s dist/index.js)
+          CJS_SIZE=$(stat -c%s dist/index.cjs)
+          ESM_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_SIZE/1024}")
+          CJS_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_SIZE/1024}")
+          ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $(gzip -c dist/index.js | wc -c)/1024}")
+          CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $(gzip -c dist/index.cjs | wc -c)/1024}")
+
+          cat <<EOF
+          📦 Bundle Sizes
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ESM (index.js):       ${ESM_KB} KB (${ESM_GZIP_KB} KB gzipped)
+          CommonJS (index.cjs):  ${CJS_KB} KB (${CJS_GZIP_KB} KB gzipped)
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+          retention-days: 3
+
+  build-example:
+    name: 🎨 Build Example
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+      - run: npm run build:example
+
+      - name: Verify example build
+        run: |
+          [ -f "example/dist/index.html" ] || { echo "❌ example/dist/index.html not found"; exit 1; }
+          echo "✅ Example build verified"
+
+  ci-summary:
+    name: ✅ CI Summary
+    runs-on: ubuntu-latest
+    needs: [format-check, lint, type-check, test, build, build-example]
+    if: always()
+    steps:
+      - name: Print CI summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "CI Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          failed=0
+
+          if [ "${{ needs.format-check.result }}" = "success" ]; then
+            echo "  ✅ Format"
+          else
+            echo "  ❌ Format"
+            failed=1
+          fi
+
+          if [ "${{ needs.lint.result }}" = "success" ]; then
+            echo "  ✅ Lint"
+          else
+            echo "  ❌ Lint"
+            failed=1
+          fi
+
+          if [ "${{ needs.type-check.result }}" = "success" ]; then
+            echo "  ✅ Types"
+          else
+            echo "  ❌ Types"
+            failed=1
+          fi
+
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "  ✅ Tests"
+          else
+            echo "  ❌ Tests"
+            failed=1
+          fi
+
+          if [ "${{ needs.build.result }}" = "success" ]; then
+            echo "  ✅ Build"
+          else
+            echo "  ❌ Build"
+            failed=1
+          fi
+
+          if [ "${{ needs.build-example.result }}" = "success" ]; then
+            echo "  ✅ Example"
+          else
+            echo "  ❌ Example"
+            failed=1
+          fi
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          exit $failed
