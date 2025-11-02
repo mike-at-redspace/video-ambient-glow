@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi, beforeAll, afterAll } from 'vitest'
 
 // Mock canvas 2D context for testing
 const mockContext = {
@@ -38,18 +38,28 @@ const mockContext = {
   strokeText: vi.fn()
 }
 
-// Override HTMLCanvasElement.prototype.getContext
+// Store original getContext to restore after tests
 const originalGetContext = HTMLCanvasElement.prototype.getContext
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-;(HTMLCanvasElement.prototype.getContext as any) = function (
-  this: HTMLCanvasElement,
-  contextType: string,
-  options?: CanvasRenderingContext2DSettings
-) {
-  if (contextType === '2d') {
-    const ctx = { ...mockContext }
-    ctx.canvas = this
-    return ctx as unknown as CanvasRenderingContext2D
+
+// Set up canvas mocking before all tests
+beforeAll(() => {
+  // Override HTMLCanvasElement.prototype.getContext
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(HTMLCanvasElement.prototype.getContext as any) = function (
+    this: HTMLCanvasElement,
+    contextType: string,
+    options?: CanvasRenderingContext2DSettings
+  ) {
+    if (contextType === '2d') {
+      const ctx = { ...mockContext }
+      ctx.canvas = this
+      return ctx as unknown as CanvasRenderingContext2D
+    }
+    return originalGetContext.call(this, contextType, options)
   }
-  return originalGetContext.call(this, contextType, options)
-}
+})
+
+// Restore original getContext after all tests
+afterAll(() => {
+  HTMLCanvasElement.prototype.getContext = originalGetContext
+})
