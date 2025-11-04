@@ -225,12 +225,13 @@ jobs:
     needs: [format-check, lint, type-check, test, build, build-example]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
-      contents: write # For creating tags
-      id-token: write # For npm provenance
+      contents: write
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # Need previous commit to compare
+          fetch-depth: 2
 
       - uses: actions/setup-node@v4
         with:
@@ -241,40 +242,42 @@ jobs:
       - name: Check if version changed
         id: version-check
         run: |
-          # Get current version
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT_VERSION"
 
-          # Get previous version (from previous commit)
           git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous commit"
           PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "none")
           echo "Previous version: $PREVIOUS_VERSION"
 
-          # Restore current package.json
           git checkout HEAD -- package.json
 
           if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ] && [ "$PREVIOUS_VERSION" != "none" ]; then
-            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           else
-            echo "Version unchanged or no previous version found"
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Skip if version unchanged
+        if: steps.version-check.outputs.changed == 'false'
+        run: |
+          echo "ℹ️ Version unchanged – skipping npm publish" >> $GITHUB_STEP_SUMMARY
+          echo "skip_publish=true" >> $GITHUB_ENV
+
+      - name: Stop workflow if unchanged
+        if: env.skip_publish == 'true'
+        run: exit 0
+
       - name: Install dependencies
-        if: steps.version-check.outputs.changed == 'true'
         run: npm ci --prefer-offline --no-audit
 
       - name: Download build artifacts
-        if: steps.version-check.outputs.changed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: build-output-${{ github.sha }}
           path: dist/
 
       - name: Publish to npm
-        if: steps.version-check.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -282,7 +285,6 @@ jobs:
           npm publish --provenance --access public
 
       - name: Create Git tag
-        if: steps.version-check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -290,7 +292,6 @@ jobs:
           git push origin "v${{ steps.version-check.outputs.version }}"
 
       - name: Create release summary
-        if: steps.version-check.outputs.changed == 'true'
         run: |
           {
             echo "## 🎉 Released v${{ steps.version-check.outputs.version }}"
@@ -299,11 +300,6 @@ jobs:
             echo ""
             echo "🏷️ Git tag created: \`v${{ steps.version-check.outputs.version }}\`"
           } >> $GITHUB_STEP_SUMMARY
-
-      - name: Skip summary
-        if: steps.version-check.outputs.changed == 'false'
-        run: |
-          echo "ℹ️ No version change detected - skipping npm publish" >> $GITHUB_STEP_SUMMARY
 
   ci-summary:
     name: ✅ CI Summary

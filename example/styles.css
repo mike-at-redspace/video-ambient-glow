@@ -163,7 +163,7 @@
       App Layout
       ======================================================================== */
   .app-main {
-    @apply flex justify-center px-2 pt-2 relative overflow-x-hidden overflow-y-hidden w-full;
+    @apply flex mx-auto justify-center px-2 pt-2 relative overflow-x-hidden overflow-y-hidden w-full;
     max-width: 1920px;
     height: 100vh;
 
