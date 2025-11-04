@@ -505,13 +505,9 @@
 }
 
 /* ============================================================================
-    THIRD-PARTY: Styles for external libraries
+    THIRD-PARTY: Tweak Pane Styles
     ============================================================================
-    Note: Tweakpane styles are outside @layer because Tweakpane injects
-    unlayered styles, and unlayered styles always override layered styles.
-    We use increased specificity (#app body .tp-dfwv) to override Tweakpane's
-    injected styles (.tp-dfwv).
-    ============================================================================ */
+ */
 
 body#app,
 #app body {
@@ -527,7 +523,7 @@ body#app,
     @apply h-fit pb-1;
   }
 
-  /* Rotator title text */
+  /* title & folder */
   .tp-rotv_t {
     @apply p-0 cursor-move select-none;
     font-family: var(--font-google-sans-code);
@@ -536,20 +532,27 @@ body#app,
     font-variant: all-small-caps;
   }
 
-  /* Text inputs */
+  /* inputs values */
   .tp-txtv_i {
     font-family: var(--font-google-sans-code);
     font-weight: 300;
   }
 
+  .tp-fldv_t {
+    font-family: var(--font-google-sans-code);
+    font-weight: 600;
+    font-variant: all-small-caps;
+    font-size: 1rem;
+  }
+
   /* Label + button areas */
-  .tp-dfwv .tp-lblv_l,
-  .tp-dfwv .tp-lblv:first-child {
+  .tp-lblv_l,
+  .tp-lblv:first-child {
     font-family: var(--font-google-sans-code);
     font-weight: 500;
   }
 
-  /* Button labels inside label views */
+  /* Reset Button */
   .tp-lblv .tp-btnv_b {
     @apply flex flex-col h-6;
     font-family: var(--font-google-sans-code);
