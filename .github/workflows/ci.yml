@@ -262,22 +262,20 @@ jobs:
         if: steps.version-check.outputs.changed == 'false'
         run: |
           echo "ℹ️ Version unchanged – skipping npm publish" >> $GITHUB_STEP_SUMMARY
-          echo "skip_publish=true" >> $GITHUB_ENV
-
-      - name: Stop workflow if unchanged
-        if: env.skip_publish == 'true'
-        run: exit 0
 
       - name: Install dependencies
+        if: steps.version-check.outputs.changed == 'true'
         run: npm ci --prefer-offline --no-audit
 
       - name: Download build artifacts
+        if: steps.version-check.outputs.changed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: build-output-${{ github.sha }}
           path: dist/
 
       - name: Publish to npm
+        if: steps.version-check.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -285,6 +283,7 @@ jobs:
           npm publish --provenance --access public
 
       - name: Create Git tag
+        if: steps.version-check.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -292,6 +291,7 @@ jobs:
           git push origin "v${{ steps.version-check.outputs.version }}"
 
       - name: Create release summary
+        if: steps.version-check.outputs.changed == 'true'
         run: |
           {
             echo "## 🎉 Released v${{ steps.version-check.outputs.version }}"
