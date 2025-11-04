@@ -124,7 +124,7 @@
 @layer base {
   html,
   body {
-    @apply m-0 p-0 w-full h-full overflow-hidden box-border;
+    @apply m-0 p-0 w-full h-full overflow-x-hidden overflow-y-hidden box-border;
   }
 
   *,
@@ -146,11 +146,6 @@
       Roboto,
       'Helvetica Neue',
       Arial;
-
-    @media (min-width: 1024px) {
-      @apply overflow-x-hidden overflow-y-auto;
-      -webkit-overflow-scrolling: touch;
-    }
   }
 }
 
@@ -163,14 +158,9 @@
       App Layout
       ======================================================================== */
   .app-main {
-    @apply flex mx-auto justify-center px-2 pt-2 relative overflow-x-hidden overflow-y-hidden w-full;
+    @apply flex mx-auto justify-center px-2 pt-2 relative overflow-visible w-full;
     max-width: 1920px;
     height: 100vh;
-
-    @media (min-width: 1024px) {
-      @apply overflow-y-auto;
-      -webkit-overflow-scrolling: touch;
-    }
   }
 
   .app-grid {
@@ -182,6 +172,7 @@
     @media (min-width: 1024px) {
       @apply grid gap-4;
       grid-template-columns: 1fr minmax(0, 420px);
+      overflow: visible;
     }
   }
 
