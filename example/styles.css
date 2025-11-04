@@ -408,21 +408,21 @@
       ======================================================================== */
   .video-card {
     @apply flex items-center gap-3 cursor-pointer snap-start transition-all duration-200 min-w-0 shrink;
+    @apply p-3 rounded-xl border bg-linear-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800/50;
+    @apply hover:bg-neutral-800/60 hover:shadow-lg hover:shadow-zinc-500/10;
     min-height: 112px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 
     @media (max-width: 1023px) {
-      @apply w-full px-4 py-3 rounded-none border-0 bg-transparent;
-
+      @apply w-full px-4 py-3;
       &:active {
         @apply bg-neutral-800/40;
       }
     }
 
     @media (min-width: 1024px) {
-      @apply p-3 rounded-xl border bg-linear-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800/50;
-      @apply hover:bg-neutral-800/60 hover:shadow-lg hover:shadow-zinc-500/10;
+      @apply w-auto;
       min-height: auto;
     }
 
@@ -440,11 +440,8 @@
       }
     }
 
-    /* Metadata wrapper div */
     .video-card > div:last-child {
-      @apply flex flex-col justify-center;
-      flex: 1 1 auto;
-      min-width: 0;
+      @apply flex flex-col justify-center flex-1 min-w-0;
     }
 
     .video-card-title {

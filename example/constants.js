@@ -129,6 +129,91 @@ export const TWEAKPANE_CONFIG = {
 export const TWEAKPANE_TITLE = 'Ambient Glow Settings 🛠️'
 
 /**
+ * Preset configurations for different glow effect styles.
+ * These presets are based on common use cases documented in the wiki.
+ *
+ * @constant {Object<string, Object>}
+ * @property {Object} subtle - Subtle ambient effect with lower intensity
+ * @property {Object} dramatic - Dramatic immersive effect with high intensity
+ * @property {Object} monochrome - Monochrome atmospheric effect with desaturated colors
+ * @property {Object} neon - Neon-style high contrast effect with vibrant colors
+ * @property {Object} performance - High-performance mode optimized for lower-end devices
+ * @property {Object} quality - High-quality mode optimized for maximum visual fidelity
+ */
+export const PRESETS = {
+  subtle: {
+    blur: 60,
+    opacity: 0.3,
+    brightness: 0.9,
+    saturate: 0.8,
+    scale: 1.05,
+    downscale: 0.08,
+    updateInterval: 900,
+    responsiveness: 0.15
+  },
+  dramatic: {
+    blur: 150,
+    opacity: 0.9,
+    brightness: 1.4,
+    saturate: 2.0,
+    scale: 1.15,
+    downscale: 0.08,
+    updateInterval: 900,
+    responsiveness: 0.15
+  },
+  monochrome: {
+    blur: 100,
+    opacity: 0.6,
+    brightness: 1.0,
+    saturate: 0.2,
+    scale: 1.1,
+    downscale: 0.08,
+    updateInterval: 900,
+    responsiveness: 0.15
+  },
+  neon: {
+    blur: 120,
+    opacity: 0.8,
+    brightness: 1.6,
+    saturate: 3.0,
+    scale: 1.12,
+    downscale: 0.08,
+    updateInterval: 900,
+    responsiveness: 0.15
+  },
+  performance: {
+    blur: 80,
+    opacity: 0.65,
+    brightness: 1.1,
+    saturate: 1.2,
+    scale: 1.08,
+    downscale: 0.04,
+    updateInterval: 1500,
+    responsiveness: 0.1
+  },
+  quality: {
+    blur: 120,
+    opacity: 0.65,
+    brightness: 1.1,
+    saturate: 1.2,
+    scale: 1.08,
+    downscale: 0.15,
+    updateInterval: 500,
+    responsiveness: 0.3
+  }
+}
+
+/**
+ * Mapping of parameter keys to their category for grouping in Tweakpane.
+ *
+ * @constant {Object<string, string>}
+ */
+export const PARAM_CATEGORIES = {
+  visual: ['blur', 'opacity', 'brightness', 'saturate', 'scale'],
+  performance: ['downscale', 'updateInterval', 'responsiveness']
+}
+
+/**
  * Array of video source URLs from Pexels (free stock video).
  * These sample videos are used to demonstrate the ambient glow effect
  * across different content types, colors, and styles.

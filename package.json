@@ -1,6 +1,6 @@
 {
   "name": "video-ambient-glow",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Lightweight library for adding YouTube-style ambient glow effects to HTML5 video elements",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,6 +20,7 @@
   ],
   "scripts": {
     "dev": "rollup -c -w",
+    "dev:example": "cd example && npm run dev",
     "build": "NODE_ENV=production rollup -c",
     "build:example": "npm run build && cd example && npm install && npm run build",
     "test": "vitest run --coverage",
