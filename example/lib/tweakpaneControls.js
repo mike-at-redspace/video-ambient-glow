@@ -4,6 +4,7 @@ import {
   PRESETS,
   PARAM_CATEGORIES
 } from '../constants.js'
+import { generateCodeExample } from './generateCode.js'
 
 /**
  * Applies a preset configuration to the glow effect.
@@ -77,6 +78,27 @@ export const setupPanepaneControls = (pane, params, glow) => {
       .addBinding(params, key, config)
       .on('change', () => glow.updateOptions({ [key]: params[key] }))
   })
+}
+
+/**
+ * Creates a copy code button handler for Tweakpane.
+ *
+ * @param {Record<string, any>} params - The current glow parameters
+ * @returns {Function} Button click handler
+ */
+export const createCopyCodeButtonHandler = params => {
+  return () => {
+    const code = generateCodeExample(params)
+    if (
+      typeof window !== 'undefined' &&
+      window.navigator &&
+      window.navigator.clipboard
+    ) {
+      window.navigator.clipboard.writeText(code).then(() => {
+        // Button text will be updated by the caller
+      })
+    }
+  }
 }
 
 /**

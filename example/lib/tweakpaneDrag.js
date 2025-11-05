@@ -68,7 +68,6 @@ function findHeader(paneEl) {
 function setupDraggableStyles(el) {
   ;[el, el.parentElement].forEach(elm => {
     if (!elm) return
-    elm.style.cursor = 'move'
     elm.style.userSelect = 'none'
     elm.style.pointerEvents = 'auto'
   })

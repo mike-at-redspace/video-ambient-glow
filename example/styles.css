@@ -462,6 +462,10 @@
     0 0 1px rgba(255, 255, 255, 0.8), 0 0 3px var(--title-glow-color),
     0 0 6px var(--title-glow-color), 0 0 7px var(--title-glow-color);
 
+  .tp-dfwv {
+    min-width: 300px;
+  }
+
   /* Root Container */
   .tp-rotv {
     @apply backdrop-blur-xl;

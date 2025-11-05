@@ -3,6 +3,7 @@ import { DOM_IDS, DEFAULT_GLOW_PARAMS, VIDEO_SOURCES } from './constants.js'
 import {
   createVideoCard,
   createPlayVideoFunction,
+  createCopyCodeButtonHandler,
   createResetButtonHandler,
   setupPane
 } from './lib/index.js'
@@ -73,6 +74,27 @@ video.addEventListener('error', hideSpinner)
 // ============================================================================
 
 const pane = setupPane(params, glow)
+
+// Copy code button
+const copyButton = pane.addButton({ title: 'Copy Code' })
+copyButton.on('click', () => {
+  createCopyCodeButtonHandler(params)()
+  const button = copyButton.element
+  if (button) {
+    const textElement =
+      button.querySelector('.tp-btnv_t') ||
+      button.querySelector('span') ||
+      button.firstChild
+    const originalText = button.textContent.trim()
+
+    if (textElement) {
+      textElement.textContent = 'Copied!'
+      setTimeout(() => {
+        textElement.textContent = originalText
+      }, 1000)
+    }
+  }
+})
 
 pane
   .addButton({ title: 'Reset' })
