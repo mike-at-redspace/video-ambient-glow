@@ -126,7 +126,7 @@ export const TWEAKPANE_CONFIG = {
  *
  * @constant {string}
  */
-export const TWEAKPANE_TITLE = 'Ambient Glow Settings 🛠️'
+export const TWEAKPANE_TITLE = 'Ambient Glow Options'
 
 /**
  * Preset configurations for different glow effect styles.

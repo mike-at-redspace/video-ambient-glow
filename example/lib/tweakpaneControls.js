@@ -28,7 +28,7 @@ const applyPreset = (params, pane, glow, preset) => {
  * @param {import('video-ambient-glow').AmbientGlow} glow - The AmbientGlow instance
  */
 export const setupPanepaneControls = (pane, params, glow) => {
-  const presetsFolder = pane.addFolder({ title: 'Presets', expanded: true })
+  const presetsFolder = pane.addFolder({ title: '🎛️ Presets', expanded: true })
   const presetOptions = {
     Default: 'default',
     Subtle: 'subtle',
@@ -56,7 +56,7 @@ export const setupPanepaneControls = (pane, params, glow) => {
 
   // Visual Properties folder
   const visualFolder = pane.addFolder({
-    title: 'Visual Properties',
+    title: '🎨 Visual Properties',
     expanded: true
   })
   PARAM_CATEGORIES.visual.forEach(key => {
@@ -68,7 +68,7 @@ export const setupPanepaneControls = (pane, params, glow) => {
 
   // Performance folder
   const performanceFolder = pane.addFolder({
-    title: 'Performance',
+    title: '🚀 Performance',
     expanded: true
   })
   PARAM_CATEGORIES.performance.forEach(key => {

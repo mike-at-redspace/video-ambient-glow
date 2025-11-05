@@ -60,8 +60,8 @@ const glow = new AmbientGlow(video, params)
 // Video Loading State Management
 // ============================================================================
 
-const showSpinner = () => (spinner.style.display = 'block')
-const hideSpinner = () => (spinner.style.display = 'none')
+const showSpinner = () => spinner.classList.remove('spinner-hidden')
+const hideSpinner = () => spinner.classList.add('spinner-hidden')
 
 video.addEventListener('loadstart', showSpinner)
 video.addEventListener('playing', hideSpinner)

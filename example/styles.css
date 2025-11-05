@@ -1,13 +1,14 @@
 /**
  * Styles for the video-ambient-glow example
+ * Optimized with Tailwind utilities where possible
  */
 @import 'tailwindcss';
 
 @layer tokens, base, components;
 
 /* ============================================================================
-    TOKENS: Design tokens and CSS custom properties
-    ============================================================================ */
+     TOKENS: Design tokens and CSS custom properties
+     ============================================================================ */
 
 @layer tokens {
   :root {
@@ -118,13 +119,13 @@
 }
 
 /* ============================================================================
-    BASE: Base element styles and resets
-    ============================================================================ */
+     BASE: Base element styles and resets
+     ============================================================================ */
 
 @layer base {
   html,
   body {
-    @apply m-0 p-0 w-full h-full overflow-x-hidden overflow-y-hidden box-border;
+    @apply m-0 p-0 w-full h-full overflow-hidden box-border;
   }
 
   *,
@@ -134,9 +135,7 @@
   }
 
   body {
-    @apply relative;
-    background: #0f0f0f;
-    color: #f1f1f1;
+    @apply relative bg-[#0f0f0f] text-[#f1f1f1];
     font-family:
       Inter,
       ui-sans-serif,
@@ -150,15 +149,15 @@
 }
 
 /* ============================================================================
-    COMPONENTS: Component-specific styles
-    ============================================================================ */
+     COMPONENTS: Component-specific styles
+     ============================================================================ */
 
 @layer components {
   /* ========================================================================
-      App Layout
-      ======================================================================== */
+       App Layout
+       ======================================================================== */
   .app-main {
-    @apply flex mx-auto justify-center px-2 pt-2 relative overflow-visible w-full;
+    @apply flex justify-center mx-auto px-2 pt-2 relative overflow-visible w-full;
     max-width: 1920px;
     height: 100vh;
   }
@@ -172,15 +171,14 @@
     @media (min-width: 1024px) {
       @apply grid gap-4;
       grid-template-columns: 1fr minmax(0, 420px);
-      overflow: visible;
     }
   }
 
   /* ========================================================================
-      Content Section
-      ======================================================================== */
+       Content Section
+       ======================================================================== */
   .content-section {
-    @apply relative w-full shrink min-w-0;
+    @apply relative w-full min-w-0 shrink;
     flex-basis: 0;
     overflow: visible;
     contain: none;
@@ -198,8 +196,8 @@
   }
 
   /* ========================================================================
-      Video Wrapper - allows glow to bleed while containing layout
-      ======================================================================== */
+       Video Wrapper - allows glow to bleed while containing layout
+       ======================================================================== */
   .video-wrapper {
     @apply relative w-full min-w-0 max-w-full;
     overflow: visible;
@@ -207,9 +205,8 @@
   }
 
   .video-container {
-    @apply relative flex justify-center items-center bg-black w-full shrink min-w-0 rounded-2xl;
+    @apply relative flex justify-center items-center bg-black w-full min-w-0 rounded-2xl shrink;
     aspect-ratio: 16 / 9;
-    width: 100%;
     overflow: visible;
 
     canvas {
@@ -229,29 +226,15 @@
   }
 
   .video-details {
-    @apply mt-4 px-4;
-    @media (min-width: 1024px) {
-      @apply px-0;
-    }
+    @apply mt-4 px-4 lg:px-0;
 
     .video-title {
-      @apply font-bold;
-      @media (max-width: 1023px) {
-        @apply text-lg;
-      }
-      @media (min-width: 1024px) {
-        @apply text-2xl;
-      }
+      @apply font-bold text-lg lg:text-2xl;
+      text-shadow: 0 3px 9px rgba(0, 0, 0, 0.2);
     }
 
     .video-meta {
-      @apply text-neutral-400 mt-1 font-normal;
-      @media (max-width: 1023px) {
-        @apply text-xs;
-      }
-      @media (min-width: 1024px) {
-        @apply text-sm;
-      }
+      @apply text-neutral-400 mt-1 font-normal text-xs lg:text-sm;
 
       .video-meta-highlight {
         @apply text-fuchsia-400 font-semibold;
@@ -259,24 +242,16 @@
     }
 
     .video-description {
-      @apply mt-3 text-neutral-300 font-normal;
-      @media (max-width: 1023px) {
-        @apply text-sm;
-      }
-      @media (min-width: 1024px) {
-        @apply text-base;
-      }
+      @apply mt-3 text-neutral-300 font-normal text-sm lg:text-base;
     }
   }
 
   /* ========================================================================
-      Comments Section
-      ======================================================================== */
+       Comments Section
+       ======================================================================== */
   .comments-section {
-    @apply mt-6 bg-neutral-900/40 rounded-xl p-4;
-    @media (max-width: 1023px) {
-      @apply mx-4;
-    }
+    @apply mt-6 bg-neutral-900/40 rounded-xl p-4 max-lg:mx-4;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 
     .comments-title {
       @apply text-sm font-bold mb-3;
@@ -308,8 +283,8 @@
   }
 
   /* ========================================================================
-      Sidebar
-      ======================================================================== */
+       Sidebar
+       ======================================================================== */
   .sidebar {
     @apply flex flex-col space-y-4 flex-1 min-h-0 min-w-0 overflow-hidden w-full max-w-full shrink;
     background: transparent;
@@ -340,23 +315,12 @@
       }
 
       &::-webkit-scrollbar-thumb {
-        @apply rounded border border-transparent;
-        background-color: #404040;
-
-        &:hover {
-          background-color: #525252;
-        }
+        @apply rounded border border-transparent bg-[#404040] hover:bg-[#525252];
       }
     }
 
     .sidebar-title {
-      @apply text-lg font-extrabold shrink-0;
-      @media (max-width: 1023px) {
-        @apply px-4 pt-4;
-      }
-      @media (min-width: 1024px) {
-        @apply px-0;
-      }
+      @apply text-lg font-extrabold shrink-0 max-lg:px-4 max-lg:pt-4 lg:px-0;
     }
 
     .sidebar-content {
@@ -374,7 +338,7 @@
       }
 
       @media (min-width: 1024px) {
-        @apply mr-1 snap-y pr-1;
+        @apply mr-1 pr-1 snap-y;
         scrollbar-width: thin;
         scrollbar-color: #404040 transparent;
 
@@ -387,54 +351,38 @@
         }
 
         &::-webkit-scrollbar-thumb {
-          @apply rounded;
-          background-color: #404040;
+          @apply rounded bg-[#404040];
         }
       }
     }
   }
 
   /* ========================================================================
-      Video Cards
-      ======================================================================== */
+       Video Cards
+       ======================================================================== */
   .video-card {
     @apply flex items-center gap-3 cursor-pointer snap-start transition-all duration-200 min-w-0 shrink;
     @apply p-3 rounded-xl border bg-linear-to-br from-neutral-900/80 to-neutral-900/40 border-neutral-800/50;
-    @apply hover:bg-neutral-800/60 active:shadow-lg hover:shadow-zinc-500/10;
+    @apply hover:bg-neutral-800/60 hover:shadow-zinc-500/10 active:shadow-lg;
+    @apply max-lg:w-full max-lg:px-4 max-lg:py-3 max-lg:active:bg-neutral-800/40;
+    @apply lg:w-auto;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     min-height: 112px;
     box-shadow:
       inset 0 1px 2px #ffffff30,
       0 1px 2px #00000030;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    transition:
-      background-color 0.2s ease,
-      box-shadow 0.2s ease;
-
-    @media (max-width: 1023px) {
-      @apply w-full px-4 py-3;
-      &:active {
-        @apply bg-neutral-800/40;
-      }
-    }
 
     @media (min-width: 1024px) {
-      @apply w-auto;
       min-height: auto;
     }
 
     .video-card-thumb {
       @apply rounded-lg shadow-lg relative shrink-0 min-w-0;
+      @apply max-lg:w-[40%] max-lg:max-w-[180px];
+      @apply lg:w-32 lg:min-w-24 lg:h-20;
       aspect-ratio: 16 / 9;
-
-      @media (max-width: 1023px) {
-        @apply w-[40%];
-        max-width: 180px;
-      }
-
-      @media (min-width: 1024px) {
-        @apply w-32 min-w-24 h-20;
-      }
     }
 
     .video-card > div:last-child {
@@ -443,22 +391,13 @@
 
     .video-card-title {
       @apply font-bold text-neutral-50 line-clamp-2;
-      @media (max-width: 1023px) {
-        @apply text-sm mb-1;
-      }
-      @media (min-width: 1024px) {
-        @apply text-base mb-1.5;
-      }
+      @apply text-sm max-lg:mb-1;
+      @apply lg:text-base lg:mb-1.5;
+      text-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
     }
 
     .video-card-publisher {
-      @apply text-neutral-400 font-medium;
-      @media (max-width: 1023px) {
-        @apply text-xs;
-      }
-      @media (min-width: 1024px) {
-        @apply text-sm;
-      }
+      @apply text-neutral-400 font-medium text-xs lg:text-sm;
     }
 
     .video-card-meta {
@@ -479,8 +418,7 @@
     .thumb {
       &::after {
         @apply absolute top-1/2 left-1/2 opacity-0 pointer-events-none z-10;
-        @apply text-[50px] text-white/75;
-        @apply transition-opacity duration-150 ease-in-out;
+        @apply text-[50px] text-white/75 transition-opacity duration-150 ease-in-out;
         content: '▶';
         transform: translate(-50%, -50%);
       }
@@ -488,56 +426,71 @@
   }
 
   /* ========================================================================
-      Utility Components
-      ======================================================================== */
+       Utility Components
+       ======================================================================== */
   #spinner {
-    @apply absolute top-1/2 left-1/2 w-10 h-10 rounded-full hidden z-100 border-4 border-white/20 border-t-white;
-    transform: translate(-50%, -50%) rotate(0deg);
+    @apply absolute top-1/2 left-1/2 w-16 h-16 rounded-full z-50;
+    @apply border-4 border-white/20 border-t-white;
+    @apply -translate-x-1/2 -translate-y-1/2;
+    @apply transition-all duration-300 ease-in-out;
+    @apply invisible opacity-0;
     transform-origin: center;
     animation: spin 0.8s linear infinite;
   }
 
+  #spinner:not(.spinner-hidden) {
+    @apply visible opacity-100;
+  }
+
   @keyframes spin {
     to {
-      transform: translate(-50%, -50%) rotate(360deg);
+      rotate: 360deg;
     }
   }
 }
 
 /* ============================================================================
-    THIRD-PARTY: Tweak Pane Styles
-    ============================================================================
- */
+     THIRD-PARTY: Tweak Pane Styles
+     ============================================================================
+  */
 
-body#app,
-#app body {
-  --font-google-sans-code: 'Google Sans Code', monospace !important;
+#app {
+  /* CSS Variables */
+  --font-google-sans-code: 'Google Sans Code', monospace;
+  --title-glow-color: oklch(0.78 0.17 25);
+  --title-glow-shadow:
+    0 0 1px rgba(255, 255, 255, 0.8), 0 0 3px var(--title-glow-color),
+    0 0 6px var(--title-glow-color), 0 0 7px var(--title-glow-color);
 
-  /* Root visual tweaks */
+  /* Root Container */
   .tp-rotv {
-    @apply backdrop-blur-3xl;
+    @apply backdrop-blur-xl;
   }
 
-  /* Rotator value container */
+  /* Body */
   .tp-rotv_b {
-    @apply h-fit pb-1;
+    height: fit-content;
   }
 
-  /* title & folder */
+  /* Title */
   .tp-rotv_t {
-    @apply p-0 cursor-move select-none;
+    padding: 0;
+    user-select: none;
     font-family: var(--font-google-sans-code);
     font-weight: 800;
     font-size: 1.2rem;
     font-variant: all-small-caps;
+    transition: text-shadow 0.3s ease;
+    will-change: text-shadow;
   }
 
-  /* inputs values */
-  .tp-txtv_i {
-    font-family: var(--font-google-sans-code);
-    font-weight: 300;
+  .tp-rotv_t:hover {
+    animation: rainbow-glow 6s ease infinite;
+    text-shadow: var(--title-glow-shadow);
+    cursor: move;
   }
 
+  /* Field Title */
   .tp-fldv_t {
     font-family: var(--font-google-sans-code);
     font-weight: 600;
@@ -545,19 +498,65 @@ body#app,
     font-size: 1rem;
   }
 
-  /* Label + button areas */
+  /* Field Label */
   .tp-lblv_l,
   .tp-lblv:first-child {
     font-family: var(--font-google-sans-code);
     font-weight: 500;
   }
 
+  /* Field Value */
+  .tp-txtv_i {
+    font-family: var(--font-google-sans-code);
+    font-weight: 300;
+  }
+
   /* Reset Button */
   .tp-lblv .tp-btnv_b {
-    @apply flex flex-col h-6;
+    display: flex;
+    flex-direction: column;
+    height: 1.5rem;
     font-family: var(--font-google-sans-code);
     font-weight: 800;
     font-size: 1.2rem;
     font-variant: all-small-caps;
+  }
+}
+
+@keyframes rainbow-glow {
+  0% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 2.5px oklch(0.78 0.17 25),
+      0 0 5.5px oklch(0.78 0.17 25), 0 0 8px oklch(0.78 0.17 25);
+  }
+  16% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 3.5px oklch(0.8 0.16 70),
+      0 0 7px oklch(0.8 0.16 70), 0 0 6.5px oklch(0.8 0.16 70);
+  }
+  33% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 4px oklch(0.82 0.15 140),
+      0 0 6px oklch(0.82 0.15 140), 0 0 7.5px oklch(0.82 0.15 140);
+  }
+  50% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 3px oklch(0.82 0.16 210),
+      0 0 8px oklch(0.82 0.16 210), 0 0 6px oklch(0.82 0.16 210);
+  }
+  66% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 2.8px oklch(0.8 0.17 280),
+      0 0 5.8px oklch(0.8 0.17 280), 0 0 8.5px oklch(0.8 0.17 280);
+  }
+  83% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 4.2px oklch(0.8 0.17 340),
+      0 0 6.5px oklch(0.8 0.17 340), 0 0 7px oklch(0.8 0.17 340);
+  }
+  100% {
+    --title-glow-shadow:
+      0 0 1px rgba(255, 255, 255, 0.8), 0 0 2.5px oklch(0.78 0.17 25),
+      0 0 5.5px oklch(0.78 0.17 25), 0 0 8px oklch(0.78 0.17 25);
   }
 }
