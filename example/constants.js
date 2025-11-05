@@ -43,7 +43,7 @@ export const DEFAULT_GLOW_PARAMS = {
   saturate: 1.2,
   scale: 1.08,
   downscale: 0.08,
-  updateInterval: 900,
+  updateInterval: 450,
   responsiveness: 0.15
 }
 
@@ -148,7 +148,7 @@ export const PRESETS = {
     saturate: 0.8,
     scale: 1.05,
     downscale: 0.08,
-    updateInterval: 900,
+    updateInterval: 450,
     responsiveness: 0.15
   },
   dramatic: {
@@ -158,7 +158,7 @@ export const PRESETS = {
     saturate: 2.0,
     scale: 1.15,
     downscale: 0.08,
-    updateInterval: 900,
+    updateInterval: 450,
     responsiveness: 0.15
   },
   monochrome: {
@@ -168,7 +168,7 @@ export const PRESETS = {
     saturate: 0.2,
     scale: 1.1,
     downscale: 0.08,
-    updateInterval: 900,
+    updateInterval: 450,
     responsiveness: 0.15
   },
   neon: {
@@ -178,7 +178,7 @@ export const PRESETS = {
     saturate: 3.0,
     scale: 1.12,
     downscale: 0.08,
-    updateInterval: 900,
+    updateInterval: 450,
     responsiveness: 0.15
   },
   performance: {
@@ -198,7 +198,7 @@ export const PRESETS = {
     saturate: 1.2,
     scale: 1.08,
     downscale: 0.15,
-    updateInterval: 500,
+    updateInterval: 300,
     responsiveness: 0.3
   }
 }

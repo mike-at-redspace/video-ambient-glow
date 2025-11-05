@@ -1,6 +1,6 @@
 {
   "name": "video-ambient-glow",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Lightweight library for adding YouTube-style ambient glow effects to HTML5 video elements",
   "type": "module",
   "main": "./dist/index.cjs",

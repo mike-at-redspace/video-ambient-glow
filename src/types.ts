@@ -44,7 +44,7 @@ export interface GlowOptions {
   downscale?: number
   /**
    * Update interval in ms. Lower = smoother but more CPU.
-   * @defaultValue 900
+   * @defaultValue 450
    */
   updateInterval?: number
   /**
@@ -52,6 +52,7 @@ export interface GlowOptions {
    * Note: blendOld + blendNew should usually equal 1.
    * Ignored if `responsiveness` is set.
    * @defaultValue 0.85
+   * @deprecated Use `responsiveness` instead. This option will be removed in a future version.
    */
   blendOld?: number
   /**
@@ -59,6 +60,7 @@ export interface GlowOptions {
    * Note: blendOld + blendNew should usually equal 1.
    * Ignored if `responsiveness` is set.
    * @defaultValue 0.15
+   * @deprecated Use `responsiveness` instead. This option will be removed in a future version.
    */
   blendNew?: number
   /**
