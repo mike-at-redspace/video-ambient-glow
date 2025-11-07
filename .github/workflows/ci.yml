@@ -8,6 +8,27 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution'
+        type: boolean
+        default: false
+      skip_lint:
+        description: 'Skip linting and formatting checks'
+        type: boolean
+        default: false
+      force_build:
+        description: 'Force build even if no source changes detected'
+        type: boolean
+        default: false
+      force_publish:
+        description: 'Force npm publish (will still check version changes)'
+        type: boolean
+        default: false
+      run_example_build:
+        description: 'Force example build'
+        type: boolean
+        default: false
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
@@ -17,199 +38,489 @@ env:
   NODE_VERSION: '22'
   FORCE_COLOR: 1
 
+# Default permissions for all jobs
+permissions:
+  contents: read
+
 jobs:
-  format-check:
-    name: '📝 Format Check'
+  setup:
+    name: '⚡ Setup & Cache'
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    outputs:
+      cache-hit: ${{ steps.cache-node-modules.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+      - name: Verify installation
+        run: |
+          set -euo pipefail
+          echo "✅ Node modules ready"
+          echo "📦 $(npm list --depth=0 2>/dev/null | grep -c '^[├└]' || echo '0') packages installed"
+
+  format-check:
+    name: '📝 Format Check'
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ !inputs.skip_lint }}
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          cache: npm
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
       - run: npm run format:check
 
   lint:
     name: '🔍 Lint'
     runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ !inputs.skip_lint }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
       - run: npm run lint:ci
 
   type-check:
     name: '📘 Type Check'
     runs-on: ubuntu-latest
+    needs: setup
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
       - run: npx tsc --noEmit
 
   test:
     name: '🧪 Tests'
     runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ !inputs.skip_tests }}
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
       - run: npm test
-      - uses: actions/upload-artifact@v4
+      - name: Verify and upload test coverage
         if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
+            echo "⚠️ Coverage directory is empty or doesn't exist"
+          else
+            echo "✅ Coverage artifacts verified"
+          fi
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: 'test-coverage-${{ github.sha }}'
           path: coverage/
-          retention-days: 3
+          retention-days: 7
           if-no-files-found: warn
+
+  security-audit:
+    name: '🔒 Security Audit'
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          cache: npm
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+      - name: Run security audit
+        run: npm audit --audit-level=high
 
   check-changes:
     name: '🔍 Check Changed Files'
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     outputs:
       build-main: '${{ steps.src.outputs.changed }}'
       build-example: '${{ steps.example.outputs.changed }}'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (with history)
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+      - name: Set diff SHAs
+        run: ./scripts/set-diff-shas.sh "${{ github.event.pull_request.base.sha || '' }}" "${{ github.event.pull_request.head.sha || '' }}"
       - name: Check ./src changes
         id: src
-        run: |
-          if git diff --quiet HEAD~1 HEAD -- ./src; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
+        run: ./scripts/check-changes.sh ./src "${{ inputs.force_build }}"
       - name: Check ./example changes
         id: example
-        run: |
-          if git diff --quiet HEAD~1 HEAD -- ./example; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
+        run: ./scripts/check-changes.sh ./example "${{ inputs.run_example_build }}"
 
   build:
     name: '🏗️ Build'
     runs-on: ubuntu-latest
     needs:
+      - setup
       - format-check
       - lint
       - type-check
       - test
+      - security-audit
       - check-changes
-    if: needs.check-changes.outputs.build-main == 'true'
+    if: |
+      always() && 
+      !cancelled() && 
+      !failure() && 
+      (needs.check-changes.outputs.build-main == 'true' || inputs.force_build) &&
+      (needs.format-check.result == 'success' || needs.format-check.result == 'skipped') &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      (needs.type-check.result == 'success') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.security-audit.result == 'success')
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository (with history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
-      - run: npm run build
-      - name: Verify build artifacts
-        run: |
-          missing=0
-          for file in dist/index.js dist/index.cjs dist/index.umd.js dist/index.d.ts; do
-            if [ ! -f "$file" ]; then
-              echo "❌ $file not found"
-              missing=1
-            else
-              echo "✅ $file"
-            fi
-          done
-          if [ $missing -eq 1 ]; then exit 1; fi
-      - name: Report bundle sizes
-        run: |
-          ESM_SIZE=$(stat -c%s dist/index.js)
-          CJS_SIZE=$(stat -c%s dist/index.cjs)
-          UMD_SIZE=$(stat -c%s dist/index.umd.js)
-          ESM_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_SIZE/1024}")
-          CJS_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_SIZE/1024}")
-          UMD_KB=$(awk "BEGIN {printf \"%.2f\", $UMD_SIZE/1024}")
-          ESM_GZIP=$(gzip -c dist/index.js | wc -c)
-          CJS_GZIP=$(gzip -c dist/index.cjs | wc -c)
-          UMD_GZIP=$(gzip -c dist/index.umd.js | wc -c)
-          ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_GZIP/1024}")
-          CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_GZIP/1024}")
-          UMD_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $UMD_GZIP/1024}")
-          printf "%-25s %8s KB (%6s KB gzipped)\n" "ESM (index.js):" "$ESM_KB" "$ESM_GZIP_KB"
-          printf "%-25s %8s KB (%6s KB gzipped)\n" "CommonJS (index.cjs):" "$CJS_KB" "$CJS_GZIP_KB"
-          printf "%-25s %8s KB (%6s KB gzipped)\n" "UMD (index.umd.js):" "$UMD_KB" "$UMD_GZIP_KB"
-      - uses: actions/upload-artifact@v4
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+      - name: Build library
+        run: npm run build
+      - name: Compare bundle sizes (PR only)
+        if: github.event_name == 'pull_request'
+        run: ./scripts/compare-bundle-sizes.sh "${{ github.base_ref }}" "${{ github.sha }}"
+      - name: Verify and report build artifacts
+        run: ./scripts/verify-build.sh
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
-          retention-days: 3
+          retention-days: 14
+          if-no-files-found: error
 
-  build-example:
-    name: '🎨 Build Example'
+  benchmark:
+    name: '⚡ Performance Benchmark'
     runs-on: ubuntu-latest
-    needs:
-      - format-check
-      - lint
-      - type-check
-      - test
-      - build
-      - check-changes
-    if: needs.check-changes.outputs.build-example == 'true'
+    needs: [build]
+    if: needs.build.result == 'success'
     timeout-minutes: 3
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '${{ env.NODE_VERSION }}'
-          cache: npm
-      - run: npm ci --prefer-offline --no-audit
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
-      - run: npm run build:example
-      - name: Verify example build
-        run: |
-          if [ -f "example/dist/index.html" ]; then
-            echo "✅ example/dist/index.html verified"
-            EXAMPLE_SIZE=$(du -sh example/dist 2>/dev/null | cut -f1 || echo "unknown")
-            echo "📊 Example build size: $EXAMPLE_SIZE"
-          else
-            echo "❌ example/dist/index.html not found"
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: 'example-build-${{ github.sha }}'
-          path: example/dist/
-          retention-days: 3
+      - name: Run performance benchmarks
+        run: ./scripts/benchmark.sh
 
-  publish-npm:
-    name: '📦 Publish to npm'
+  quality-gate:
+    name: '🚫 Quality Gate'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     needs:
       - format-check
       - lint
       - type-check
       - test
+      - security-audit
+      - build
+      - benchmark
+    if: always()
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Check quality gate
+        run: |
+          set -euo pipefail
+
+          echo "🔍 Checking quality gate status..."
+
+          # Function to check job result
+          check_job() {
+            local name="$1"
+            local result="$2"
+            local required="${3:-true}"  # Optional: whether job is required
+            
+            case "$result" in
+              "success")
+                echo "✅ $name: $result"
+                return 0
+                ;;
+              "skipped")
+                if [ "$required" = "false" ]; then
+                  echo "⏭️ $name: $result (optional)"
+                  return 0
+                else
+                  echo "⏭️ $name: $result (allowed due to conditions)"
+                  return 0
+                fi
+                ;;
+              "failure"|"cancelled")
+                echo "❌ $name: $result"
+                return 1
+                ;;
+              *)
+                echo "❓ $name: $result (unknown - treating as failure)"
+                return 1
+                ;;
+            esac
+          }
+
+          # Track failures
+          failed_jobs=()
+
+          # Check each job - some can be skipped based on inputs
+          check_job "Format Check" "${{ needs.format-check.result }}" "optional" || failed_jobs+=("Format Check")
+          check_job "Lint" "${{ needs.lint.result }}" "optional" || failed_jobs+=("Lint") 
+          check_job "Type Check" "${{ needs.type-check.result }}" "true" || failed_jobs+=("Type Check")
+          check_job "Tests" "${{ needs.test.result }}" "optional" || failed_jobs+=("Tests")
+          check_job "Security Audit" "${{ needs.security-audit.result }}" "true" || failed_jobs+=("Security Audit")
+          check_job "Build" "${{ needs.build.result }}" "true" || failed_jobs+=("Build")
+          check_job "Benchmark" "${{ needs.benchmark.result }}" "optional" || failed_jobs+=("Benchmark")
+
+          echo ""
+          echo "📊 Quality Gate Summary:"
+          echo "========================"
+
+          if [ ${#failed_jobs[@]} -eq 0 ]; then
+            echo "🎉 All required quality checks passed!"
+            echo ""
+            echo "✅ **QUALITY GATE: PASSED** ✅"
+            echo "This PR is ready to merge! 🚀"
+          else
+            echo "❌ Failed jobs: ${failed_jobs[*]}"
+            echo ""
+            echo "🚫 **QUALITY GATE: FAILED** 🚫"
+            echo "This PR cannot be merged until all quality checks pass."
+            exit 1
+          fi
+
+  build-example:
+    name: '🎨 Build Example'
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - format-check
+      - lint
+      - type-check
+      - test
+      - security-audit
+      - build
       - check-changes
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: |
+      always() && 
+      !cancelled() && 
+      !failure() && 
+      (needs.check-changes.outputs.build-example == 'true' || inputs.run_example_build) &&
+      (needs.format-check.result == 'success' || needs.format-check.result == 'skipped') &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      (needs.type-check.result == 'success') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.security-audit.result == 'success') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          cache: npm
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+      - name: Download build artifacts (if available)
+        if: needs.build.result == 'success'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: 'build-output-${{ github.sha }}'
+          path: dist/
+      - name: Build main library if needed
+        run: |
+          set -euo pipefail
+          if [ ! -f "dist/index.js" ]; then
+            echo "🏗️ Main build artifacts not found, building library..."
+            npm run build
+          else
+            echo "✅ Using existing build artifacts"
+          fi
+      - name: Build example
+        run: npm run build:example
+      - name: Verify and report example build
+        run: |
+          set -euo pipefail
+          if [ ! -f "example/dist/index.html" ]; then
+            echo "❌ example/dist/index.html not found"
+            exit 1
+          fi
+
+          if [ ! -d "example/dist/assets" ]; then
+            echo "❌ example/dist/assets directory not found"
+            exit 1
+          fi
+
+          echo "✅ example/dist/index.html verified"
+          EXAMPLE_SIZE=$(du -sh example/dist 2>/dev/null | cut -f1 || echo "unknown")
+          echo "📊 Example build size: $EXAMPLE_SIZE"
+
+          # Count assets
+          ASSET_COUNT=$(find example/dist/assets -type f | wc -l)
+          echo "📁 Assets: $ASSET_COUNT files"
+      - name: Upload example build
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'example-build-${{ github.sha }}'
+          path: example/dist/
+          retention-days: 7
+
+  publish-npm:
+    name: '📦 Publish to npm'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs:
+      - setup
+      - format-check
+      - lint
+      - type-check
+      - test
+      - check-changes
+    if: |
+      always() && 
+      !cancelled() && 
+      !failure() && 
+      ((github.ref == 'refs/heads/main' && github.event_name == 'push') || inputs.force_publish) &&
+      (needs.format-check.result == 'success' || needs.format-check.result == 'skipped') &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      (needs.type-check.result == 'success') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
     permissions:
       contents: write
       id-token: write
@@ -222,19 +533,16 @@ jobs:
           node-version: '${{ env.NODE_VERSION }}'
           cache: npm
           registry-url: 'https://registry.npmjs.org'
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ env.NODE_VERSION }}-
       - name: Check if version changed
         id: version-check
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          git checkout HEAD~1 -- package.json 2>/dev/null || echo "none"
-          PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "none")
-          git checkout HEAD -- package.json
-          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ] && [ "$PREVIOUS_VERSION" != "none" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
+        run: ./scripts/check-version-changed.sh
       - name: Skip if version unchanged
         if: steps.version-check.outputs.changed == 'false'
         run: echo "ℹ️ Version unchanged – skipping npm publish"
@@ -250,7 +558,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
         run: |
-          npm ci --prefer-offline --no-audit
+          # Install dependencies if not cached
+          if [ ! -d "node_modules" ] || [ "${{ needs.setup.outputs.cache-hit }}" != "true" ]; then
+            npm ci --prefer-offline --no-audit
+          fi
           # Only run build if we don't have artifacts from build job
           if [ ! -f "dist/index.js" ]; then
             echo "🏗️ Running build (no artifacts from build job)"
@@ -267,27 +578,275 @@ jobs:
           git tag -a "v${{ steps.version-check.outputs.version }}" -m "Release v${{ steps.version-check.outputs.version }}"
           git push origin "v${{ steps.version-check.outputs.version }}"
 
-  ci-summary:
-    name: '✅ CI Summary'
+  pr-comment:
+    name: '💬 PR Comment'
     runs-on: ubuntu-latest
     needs:
+      - setup
       - format-check
       - lint
       - type-check
       - test
+      - security-audit
       - build
+      - benchmark
+      - quality-gate
+      - build-example
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download build artifacts (if available)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: 'build-output-${{ github.sha }}'
+          path: dist/
+      - name: Download coverage artifacts (if available)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: 'test-coverage-${{ github.sha }}'
+          path: coverage/
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Helper function for status emojis
+            const getStatusEmoji = (status) => {
+              switch(status) {
+                case 'success': return '✅';
+                case 'failure': return '❌';
+                case 'cancelled': return '🚫';
+                case 'skipped': return '⏭️';
+                default: return '❓';
+              }
+            };
+
+            let comment = '## 🎯 CI Results\n\n';
+
+            // Job status table
+            comment += '| Job | Status |\n';
+            comment += '|-----|--------|\n';
+            comment += `| Setup | ${getStatusEmoji('${{ needs.setup.result }}')} ${{ needs.setup.result }} |\n`;
+            comment += `| Format Check | ${getStatusEmoji('${{ needs.format-check.result }}')} ${{ needs.format-check.result }} |\n`;
+            comment += `| Lint | ${getStatusEmoji('${{ needs.lint.result }}')} ${{ needs.lint.result }} |\n`;
+            comment += `| Type Check | ${getStatusEmoji('${{ needs.type-check.result }}')} ${{ needs.type-check.result }} |\n`;
+            comment += `| Test | ${getStatusEmoji('${{ needs.test.result }}')} ${{ needs.test.result }} |\n`;
+            comment += `| Security Audit | ${getStatusEmoji('${{ needs.security-audit.result }}')} ${{ needs.security-audit.result }} |\n`;
+            comment += `| Build | ${getStatusEmoji('${{ needs.build.result }}')} ${{ needs.build.result }} |\n`;
+            comment += `| Benchmark | ${getStatusEmoji('${{ needs.benchmark.result }}')} ${{ needs.benchmark.result }} |\n`;
+            comment += `| 🚫 **Quality Gate** | ${getStatusEmoji('${{ needs.quality-gate.result }}')} **${{ needs.quality-gate.result }}** |\n`;
+            comment += `| Build Example | ${getStatusEmoji('${{ needs.build-example.result }}')} ${{ needs.build-example.result }} |\n`;
+
+            // Bundle size info (if available)
+            if (fs.existsSync('dist/index.js')) {
+              comment += '\n## 📦 Bundle Sizes\n\n';
+              try {
+                const esmSize = fs.statSync('dist/index.js').size;
+                const cjsSize = fs.statSync('dist/index.cjs').size;
+                const umdSize = fs.statSync('dist/index.umd.js').size;
+                
+                comment += '| Format | Size |\n';
+                comment += '|--------|------|\n';
+                comment += `| ESM | ${(esmSize/1024).toFixed(1)} KB |\n`;
+                comment += `| CommonJS | ${(cjsSize/1024).toFixed(1)} KB |\n`;
+                comment += `| UMD | ${(umdSize/1024).toFixed(1)} KB |\n`;
+              } catch (e) {
+                comment += '_Bundle size information unavailable_\n';
+              }
+            }
+
+            // Coverage info (if available)
+            if (fs.existsSync('coverage/coverage-final.json')) {
+              comment += '\n## 🧪 Test Coverage\n\n';
+              try {
+                const coverage = JSON.parse(fs.readFileSync('coverage/coverage-final.json', 'utf8'));
+                let totalLines = 0, coveredLines = 0;
+                for (const file in coverage) {
+                  const fileCov = coverage[file];
+                  totalLines += Object.keys(fileCov.s).length;
+                  coveredLines += Object.values(fileCov.s).filter(hits => hits > 0).length;
+                }
+                const percentage = totalLines > 0 ? ((coveredLines / totalLines) * 100).toFixed(1) : '0';
+                comment += `**Coverage:** ${percentage}% (${coveredLines}/${totalLines} lines)\n`;
+              } catch (e) {
+                comment += '_Coverage information unavailable_\n';
+              }
+            }
+
+            comment += `\n---\n*CI run: [\`${context.sha.substring(0, 7)}\`](${context.payload.pull_request.html_url}/commits/${context.sha})*`;
+
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('🎯 CI Results')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  ci-summary:
+    name: '✅ CI Summary'
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - format-check
+      - lint
+      - type-check
+      - test
+      - security-audit
+      - build
+      - benchmark
+      - quality-gate
+      - build-example
       - publish-npm
     if: always()
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download build artifacts (if available)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: 'build-output-${{ github.sha }}'
+          path: dist/
       - name: Generate CI summary
         run: |
+          get_status_emoji() {
+            case "$1" in
+              "success") echo "✅" ;;
+              "failure") echo "❌" ;;
+              "cancelled") echo "🚫" ;;
+              "skipped") echo "⏭️" ;;
+              *) echo "❓" ;;
+            esac
+          }
+
+          format_duration() {
+            local seconds=$1
+            if [ "$seconds" -gt 60 ]; then
+              printf "%dm %ds" $((seconds/60)) $((seconds%60))
+            else
+              printf "%ds" "$seconds"
+            fi
+          }
+
           echo "# 🎯 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Format Check | ${{ needs.format-check.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint        | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Type Check  | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test        | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build       | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Publish npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
+
+          # Calculate workflow duration
+          WORKFLOW_START="${{ github.event.repository.created_at }}"
+          WORKFLOW_END=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Overall status
+          overall_status="success"
+          failed_jobs=""
+
+          # Check each job result
+          for job in "format-check:${{ needs.format-check.result }}" "lint:${{ needs.lint.result }}" "type-check:${{ needs.type-check.result }}" "test:${{ needs.test.result }}" "security-audit:${{ needs.security-audit.result }}" "build:${{ needs.build.result }}" "benchmark:${{ needs.benchmark.result }}" "quality-gate:${{ needs.quality-gate.result }}" "build-example:${{ needs.build-example.result }}"; do
+            job_name=$(echo "$job" | cut -d: -f1)
+            job_result=$(echo "$job" | cut -d: -f2)
+            if [ "$job_result" = "failure" ]; then
+              overall_status="failure"
+              failed_jobs="$failed_jobs $job_name"
+            fi
+          done
+
+          echo "**Overall Status:** $(get_status_emoji "$overall_status") $overall_status" >> $GITHUB_STEP_SUMMARY
+          [ -n "$failed_jobs" ] && echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Job results table
+          echo "## 📊 Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Estimated Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|-------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📝 Format Check | $(get_status_emoji '${{ needs.format-check.result }}') ${{ needs.format-check.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Lint | $(get_status_emoji '${{ needs.lint.result }}') ${{ needs.lint.result }} | ~1m |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📘 Type Check | $(get_status_emoji '${{ needs.type-check.result }}') ${{ needs.type-check.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test | $(get_status_emoji '${{ needs.test.result }}') ${{ needs.test.result }} | ~45s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔒 Security Audit | $(get_status_emoji '${{ needs.security-audit.result }}') ${{ needs.security-audit.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Build | $(get_status_emoji '${{ needs.build.result }}') ${{ needs.build.result }} | ~1m |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚡ Performance Benchmark | $(get_status_emoji '${{ needs.benchmark.result }}') ${{ needs.benchmark.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚫 Quality Gate | $(get_status_emoji '${{ needs.quality-gate.result }}') ${{ needs.quality-gate.result }} | ~15s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎨 Build Example | $(get_status_emoji '${{ needs.build-example.result }}') ${{ needs.build-example.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 Publish npm | $(get_status_emoji '${{ needs.publish-npm.result }}') ${{ needs.publish-npm.result }} | ~45s |" >> $GITHUB_STEP_SUMMARY
+
+          # Bundle size info (if build succeeded)
+          if [[ "${{ needs.build.result }}" == "success" && -f "dist/index.js" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📦 Bundle Sizes" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            ESM_SIZE=$(stat -c%s dist/index.js 2>/dev/null || echo "0")
+            CJS_SIZE=$(stat -c%s dist/index.cjs 2>/dev/null || echo "0") 
+            UMD_SIZE=$(stat -c%s dist/index.umd.js 2>/dev/null || echo "0")
+            
+            if [ "$ESM_SIZE" -gt 0 ]; then
+              ESM_KB=$(awk "BEGIN {printf \"%.1f\", $ESM_SIZE/1024}")
+              CJS_KB=$(awk "BEGIN {printf \"%.1f\", $CJS_SIZE/1024}")
+              UMD_KB=$(awk "BEGIN {printf \"%.1f\", $UMD_SIZE/1024}")
+              
+              ESM_GZIP=$(gzip -c dist/index.js | wc -c)
+              CJS_GZIP=$(gzip -c dist/index.cjs | wc -c)
+              UMD_GZIP=$(gzip -c dist/index.umd.js | wc -c)
+              ESM_GZIP_KB=$(awk "BEGIN {printf \"%.1f\", $ESM_GZIP/1024}")
+              CJS_GZIP_KB=$(awk "BEGIN {printf \"%.1f\", $CJS_GZIP/1024}")
+              UMD_GZIP_KB=$(awk "BEGIN {printf \"%.1f\", $UMD_GZIP/1024}")
+              
+              echo "| Format | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|------|---------|" >> $GITHUB_STEP_SUMMARY
+              echo "| ESM | ${ESM_KB} KB | ${ESM_GZIP_KB} KB |" >> $GITHUB_STEP_SUMMARY
+              echo "| CommonJS | ${CJS_KB} KB | ${CJS_GZIP_KB} KB |" >> $GITHUB_STEP_SUMMARY
+              echo "| UMD | ${UMD_KB} KB | ${UMD_GZIP_KB} KB |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # Workflow info
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ℹ️ Workflow Info" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Actor:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+          # Manual trigger options (if workflow_dispatch)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚙️ Manual Trigger Options" >> $GITHUB_STEP_SUMMARY
+            echo "- Skip Tests: ${{ inputs.skip_tests }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Skip Lint: ${{ inputs.skip_lint }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Force Build: ${{ inputs.force_build }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Force Publish: ${{ inputs.force_publish }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Run Example Build: ${{ inputs.run_example_build }}" >> $GITHUB_STEP_SUMMARY
+          fi
