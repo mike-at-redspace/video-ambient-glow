@@ -35,8 +35,8 @@ import {
  * ```typescript
  * const video = document.querySelector('video');
  * const glow = new AmbientGlow(video, {
- *   blur: 96,
- *   opacity: 0.65,
+ * blur: 96,
+ * opacity: 0.65,
  * });
  *
  * video.play();
@@ -46,11 +46,12 @@ import {
  * @public
  */
 export class AmbientGlow {
-  private video: HTMLVideoElement
-  private canvas: HTMLCanvasElement
-  private ctx: CanvasRenderingContext2D
-  private tempCanvas: HTMLCanvasElement
-  private tempCtx: CanvasRenderingContext2D
+  private readonly video: HTMLVideoElement
+  private readonly canvas: HTMLCanvasElement
+  private readonly ctx: CanvasRenderingContext2D
+  private readonly tempCanvas: HTMLCanvasElement
+  private readonly tempCtx: CanvasRenderingContext2D
+
   private options: NormalizedGlowOptions
   private lastImage: ImageData | null = null
   private isLooping = false
@@ -58,7 +59,7 @@ export class AmbientGlow {
   private lastUpdateTime = 0
   private resizeTimeout: number | null = null
   private resizeRafId: number | null = null
-  private boundHandlers: Map<string, EventListener> = new Map()
+  private readonly boundHandlers: Map<string, EventListener> = new Map()
   private isDestroyed = false
   private resizeObserver: ResizeObserver | null = null
   private intersectionObserver: IntersectionObserver | null = null
@@ -106,6 +107,7 @@ export class AmbientGlow {
 
     this.setupEventListeners()
     this.resizeCanvas()
+    this.applyFilterStyles() // Apply initial styles
   }
 
   /**
@@ -113,6 +115,7 @@ export class AmbientGlow {
    *
    * @param options - Options to normalize.
    * @returns Normalized options with all required fields.
+   * @private
    */
   private normalizeOptions(options: GlowOptions): NormalizedGlowOptions {
     const normalized = { ...DEFAULT_OPTIONS, ...options }
@@ -128,6 +131,7 @@ export class AmbientGlow {
 
   /**
    * Applies CSS filters (blur, brightness, etc.) to the canvas.
+   * @private
    */
   private applyFilterStyles(): void {
     updateCanvasFilterStyles(this.canvas, this.options)
@@ -135,6 +139,7 @@ export class AmbientGlow {
 
   /**
    * Sets up video/resize event listeners (stored for cleanup).
+   * @private
    */
   private setupEventListeners(): void {
     // Bind methods and store them
@@ -182,6 +187,7 @@ export class AmbientGlow {
   /**
    * Handles visibility changes from IntersectionObserver.
    * Pauses animation when out of view, resumes when back in view (if playing).
+   * @private
    */
   private handleVisibilityChange(): void {
     if (this.isDestroyed) return
@@ -246,6 +252,7 @@ export class AmbientGlow {
   /**
    * Debounces resize events to avoid excessive canvas resizing.
    * Immediately updates canvas dimensions but defers expensive drawing.
+   * @private
    */
   private debouncedResize(): void {
     if (this.isDestroyed) return
@@ -269,17 +276,20 @@ export class AmbientGlow {
   }
 
   /**
-   * Gets cached or fresh bounding rect for performance.
+   * Gets cached or fresh bounding rect dimensions for performance.
+   * Only returns width and height, as that's all that's needed.
+   * @private
    */
-  private getCachedRect(): DOMRect {
+  private getCachedRect(): { width: number; height: number } {
     const now = performance.now()
-    const cacheValidMs = 16 // ~1 frame at 60fps
+    // Cache is valid for a single animation frame (at 60fps)
+    const cacheValidMs = 16
 
     if (this.lastRect && now - this.lastRect.time < cacheValidMs) {
       return {
         width: this.lastRect.width,
         height: this.lastRect.height
-      } as DOMRect
+      }
     }
 
     const rect = this.video.getBoundingClientRect()
@@ -289,12 +299,13 @@ export class AmbientGlow {
       time: now
     }
 
-    return rect
+    return { width: rect.width, height: rect.height }
   }
 
   /**
    * Resizes canvas to match video. Internal canvas is downscaled for perf,
    * CSS size is scaled up for the glow.
+   * @private
    */
   private resizeCanvas(): void {
     if (this.isDestroyed) return
@@ -304,7 +315,14 @@ export class AmbientGlow {
     const videoW = this.video.videoWidth || rect.width
     const videoH = this.video.videoHeight || rect.height
 
-    if (videoW <= MIN_VIDEO_DIMENSION || videoH <= MIN_VIDEO_DIMENSION) return
+    if (
+      videoW <= MIN_VIDEO_DIMENSION ||
+      videoH <= MIN_VIDEO_DIMENSION ||
+      rect.width === 0 ||
+      rect.height === 0
+    ) {
+      return
+    }
 
     const w = Math.max(MIN_CANVAS_DIMENSION, Math.round(videoW * downscale))
     const h = Math.max(MIN_CANVAS_DIMENSION, Math.round(videoH * downscale))
@@ -314,7 +332,7 @@ export class AmbientGlow {
       this.canvas.height = h
       this.tempCanvas.width = w
       this.tempCanvas.height = h
-      this.lastImage = null
+      this.lastImage = null // Invalidate last image on resize
     }
 
     const cssWidth = rect.width * scale
@@ -326,11 +344,14 @@ export class AmbientGlow {
   /**
    * Draws a video frame and blends with previous frame for smooth transitions.
    * Video readyState must be at least HAVE_CURRENT_DATA.
+   * @private
    */
   private drawFrame(): void {
-    if (this.isDestroyed) return
-
-    if (this.canvas.width === 0) {
+    if (
+      this.isDestroyed ||
+      this.canvas.width <= MIN_CANVAS_DIMENSION - 1 ||
+      this.canvas.height <= MIN_CANVAS_DIMENSION - 1
+    ) {
       return
     }
 
@@ -348,11 +369,14 @@ export class AmbientGlow {
   /**
    * Draws a video frame immediately without blending (ignores previous frame).
    * Used when video changes, is seeked, or playback resumes.
+   * @private
    */
   private drawFrameImmediately(): void {
-    if (this.isDestroyed) return
-
-    if (this.canvas.width === 0) {
+    if (
+      this.isDestroyed ||
+      this.canvas.width <= MIN_CANVAS_DIMENSION - 1 ||
+      this.canvas.height <= MIN_CANVAS_DIMENSION - 1
+    ) {
       return
     }
 
@@ -363,7 +387,7 @@ export class AmbientGlow {
       this.canvas.width,
       this.canvas.height,
       this.options,
-      null
+      null // Pass null to force a fresh draw without blending
     )
   }
 
@@ -371,6 +395,7 @@ export class AmbientGlow {
    * Animation loop - updates glow at configured intervals.
    *
    * @param currentTime - Timestamp from requestAnimationFrame.
+   * @private
    */
   private animationLoop(currentTime: number): void {
     if (!this.isLooping || this.isDestroyed) {
@@ -412,6 +437,7 @@ export class AmbientGlow {
     if (newOptions.downscale !== undefined || newOptions.scale !== undefined) {
       this.resizeCanvas()
     }
+    // Redraw immediately to reflect new options
     this.drawFrame()
   }
 
