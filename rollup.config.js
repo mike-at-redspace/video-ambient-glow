@@ -17,6 +17,12 @@ export default {
       file: pkg.main,
       format: 'cjs',
       sourcemap: !isProduction
+    },
+    {
+      file: './dist/index.umd.js',
+      format: 'umd',
+      name: 'VideoAmbientGlow',
+      sourcemap: !isProduction
     }
   ],
   plugins: [

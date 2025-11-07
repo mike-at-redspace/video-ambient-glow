@@ -18,7 +18,7 @@ Inspired by YouTube's immersive glow, this tiny, zero-dependency library adds a 
 - 🌊 Smooth frame blending for natural transitions
 - ⚡ Small bundle size (~5.8KB minified, ~2.0KB gzipped)
 - 🎛️ Customizable blur, opacity, brightness, saturation
-- 📦 ESM + CJS, tree-shakeable
+- 📦 Universal imports (ESM, CJS, UMD), auto-detects environment, tree-shakeable
 - 🔒 Written in TypeScript with full types
 - ♿ Accessible (canvas uses `aria-hidden`)
 
@@ -27,6 +27,50 @@ Inspired by YouTube's immersive glow, this tiny, zero-dependency library adds a 
 ```bash
 npm install video-ambient-glow
 ```
+
+## Import Methods
+
+### 🚀 **Auto-Detection**
+
+The package automatically detects your environment and serves the optimal format:
+
+#### ES Modules (Recommended)
+
+```typescript
+import { AmbientGlow } from 'video-ambient-glow'
+// TypeScript types included automatically
+import type { GlowOptions } from 'video-ambient-glow'
+```
+
+#### CommonJS (Node.js)
+
+```javascript
+const { AmbientGlow } = require('video-ambient-glow')
+```
+
+#### Script Tag / CDN
+
+```html
+<!-- UMD Bundle (global: VideoAmbientGlow) -->
+<script src="https://unpkg.com/video-ambient-glow/dist/index.umd.js"></script>
+<script>
+  const glow = new VideoAmbientGlow.AmbientGlow(videoElement)
+</script>
+
+<!-- Or ESM from CDN -->
+<script type="module">
+  import { AmbientGlow } from 'https://unpkg.com/video-ambient-glow/dist/index.js'
+  const glow = new AmbientGlow(videoElement)
+</script>
+```
+
+#### Dynamic Import
+
+```javascript
+const { AmbientGlow } = await import('video-ambient-glow')
+```
+
+> 💡 **No configuration needed!** Modern bundlers (Webpack 5+, Vite, Rollup, Parcel) automatically pick the best format based on your project setup.
 
 ## Quick Start
 

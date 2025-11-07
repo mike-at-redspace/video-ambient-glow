@@ -126,7 +126,7 @@ jobs:
       - name: Verify build artifacts
         run: |
           missing=0
-          for file in dist/index.js dist/index.cjs dist/index.d.ts; do
+          for file in dist/index.js dist/index.cjs dist/index.umd.js dist/index.d.ts; do
             if [ ! -f "$file" ]; then
               echo "❌ $file not found"
               missing=1
@@ -139,14 +139,19 @@ jobs:
         run: |
           ESM_SIZE=$(stat -c%s dist/index.js)
           CJS_SIZE=$(stat -c%s dist/index.cjs)
+          UMD_SIZE=$(stat -c%s dist/index.umd.js)
           ESM_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_SIZE/1024}")
           CJS_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_SIZE/1024}")
+          UMD_KB=$(awk "BEGIN {printf \"%.2f\", $UMD_SIZE/1024}")
           ESM_GZIP=$(gzip -c dist/index.js | wc -c)
           CJS_GZIP=$(gzip -c dist/index.cjs | wc -c)
+          UMD_GZIP=$(gzip -c dist/index.umd.js | wc -c)
           ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_GZIP/1024}")
           CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_GZIP/1024}")
+          UMD_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $UMD_GZIP/1024}")
           printf "%-25s %8s KB (%6s KB gzipped)\n" "ESM (index.js):" "$ESM_KB" "$ESM_GZIP_KB"
           printf "%-25s %8s KB (%6s KB gzipped)\n" "CommonJS (index.cjs):" "$CJS_KB" "$CJS_GZIP_KB"
+          printf "%-25s %8s KB (%6s KB gzipped)\n" "UMD (index.umd.js):" "$UMD_KB" "$UMD_GZIP_KB"
       - uses: actions/upload-artifact@v4
         with:
           name: 'build-output-${{ github.sha }}'
@@ -204,7 +209,6 @@ jobs:
       - type-check
       - test
       - build
-      - build-example
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
@@ -258,7 +262,6 @@ jobs:
       - type-check
       - test
       - build
-      - build-example
       - publish-npm
     if: always()
     steps:
@@ -273,5 +276,4 @@ jobs:
           echo "| Type Check  | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test        | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build       | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Example     | ${{ needs.build-example.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Publish npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
