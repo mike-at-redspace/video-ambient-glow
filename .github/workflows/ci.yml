@@ -1,14 +1,16 @@
-name: Lint, Test & Build
+name: 'Lint, Test & Build'
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-  workflow_dispatch: # Allow manual triggering
+    branches:
+      - main
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: '${{ github.workflow }}-${{ github.ref }}'
   cancel-in-progress: true
 
 env:
@@ -17,131 +19,124 @@ env:
 
 jobs:
   format-check:
-    name: 📝 Format Check
+    name: '📝 Format Check'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Check formatting
-        run: npm run format:check
+      - run: npm ci --prefer-offline --no-audit
+      - run: npm run format:check
 
   lint:
-    name: 🔍 Lint
+    name: '🔍 Lint'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Run linter
-        run: npm run lint:ci
+      - run: npm ci --prefer-offline --no-audit
+      - run: npm run lint:ci
 
   type-check:
-    name: 📘 Type Check
+    name: '📘 Type Check'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Run type check
-        run: npx tsc --noEmit
+      - run: npm ci --prefer-offline --no-audit
+      - run: npx tsc --noEmit
 
   test:
-    name: 🧪 Tests
+    name: '🧪 Tests'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Run tests
-        run: npm test
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
+      - run: npm ci --prefer-offline --no-audit
+      - run: npm test
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-coverage-${{ github.sha }}
+          name: 'test-coverage-${{ github.sha }}'
           path: coverage/
           retention-days: 3
           if-no-files-found: warn
 
-  build:
-    name: 🏗️ Build
+  check-changes:
+    name: '🔍 Check Changed Files'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [format-check, lint, type-check, test]
+    outputs:
+      build-main: '${{ steps.src.outputs.changed }}'
+      build-example: '${{ steps.example.outputs.changed }}'
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Build project
-        run: npm run build
-
-      - name: Verify build artifacts
+          fetch-depth: 2
+      - name: Check ./src changes
+        id: src
         run: |
-          echo "Checking build artifacts..."
-          missing=0
-          for file in dist/index.js dist/index.cjs dist/index.d.ts; do
-            if [ -f "$file" ]; then
-              echo "✅ $file"
-            else
-              echo "❌ $file not found"
-              missing=1
-            fi
-          done
-
-          if [ $missing -eq 1 ]; then
-            exit 1
+          if git diff --quiet HEAD~1 HEAD -- ./src; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Check ./example changes
+        id: example
+        run: |
+          if git diff --quiet HEAD~1 HEAD -- ./example; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ All build artifacts verified"
-
+  build:
+    name: '🏗️ Build'
+    runs-on: ubuntu-latest
+    needs:
+      - format-check
+      - lint
+      - type-check
+      - test
+      - check-changes
+    if: needs.check-changes.outputs.build-main == 'true'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit
+      - run: npm run build
+      - name: Verify build artifacts
+        run: |
+          missing=0
+          for file in dist/index.js dist/index.cjs dist/index.d.ts; do
+            if [ ! -f "$file" ]; then
+              echo "❌ $file not found"
+              missing=1
+            else
+              echo "✅ $file"
+            fi
+          done
+          if [ $missing -eq 1 ]; then exit 1; fi
       - name: Report bundle sizes
         run: |
-          echo "📦 Bundle Size Analysis"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          # Calculate sizes
           ESM_SIZE=$(stat -c%s dist/index.js)
           CJS_SIZE=$(stat -c%s dist/index.cjs)
           ESM_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_SIZE/1024}")
@@ -150,138 +145,102 @@ jobs:
           CJS_GZIP=$(gzip -c dist/index.cjs | wc -c)
           ESM_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $ESM_GZIP/1024}")
           CJS_GZIP_KB=$(awk "BEGIN {printf \"%.2f\", $CJS_GZIP/1024}")
-
-          # Display results
           printf "%-25s %8s KB (%6s KB gzipped)\n" "ESM (index.js):" "$ESM_KB" "$ESM_GZIP_KB"
           printf "%-25s %8s KB (%6s KB gzipped)\n" "CommonJS (index.cjs):" "$CJS_KB" "$CJS_GZIP_KB"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          # Create job summary
-          {
-            echo "## 📦 Bundle Size Report"
-            echo ""
-            echo "| Format | Size | Gzipped |"
-            echo "|--------|------|---------|"
-            echo "| ESM | ${ESM_KB} KB | ${ESM_GZIP_KB} KB |"
-            echo "| CommonJS | ${CJS_KB} KB | ${CJS_GZIP_KB} KB |"
-          } >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: build-output-${{ github.sha }}
+          name: 'build-output-${{ github.sha }}'
           path: dist/
           retention-days: 3
 
   build-example:
-    name: 🎨 Build Example
+    name: '🎨 Build Example'
     runs-on: ubuntu-latest
+    needs:
+      - format-check
+      - lint
+      - type-check
+      - test
+      - build
+      - check-changes
+    if: needs.check-changes.outputs.build-example == 'true'
     timeout-minutes: 3
-    needs: [format-check, lint, type-check, test, build]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-
+      - run: npm ci --prefer-offline --no-audit
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-output-${{ github.sha }}
+          name: 'build-output-${{ github.sha }}'
           path: dist/
-
-      - name: Build example
-        run: npm run build:example
-
+      - run: npm run build:example
       - name: Verify example build
         run: |
           if [ -f "example/dist/index.html" ]; then
             echo "✅ example/dist/index.html verified"
-            
-            # Get example size info
             EXAMPLE_SIZE=$(du -sh example/dist 2>/dev/null | cut -f1 || echo "unknown")
             echo "📊 Example build size: $EXAMPLE_SIZE"
           else
             echo "❌ example/dist/index.html not found"
             exit 1
           fi
-
-      - name: Upload example build
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: example-build-${{ github.sha }}
+          name: 'example-build-${{ github.sha }}'
           path: example/dist/
           retention-days: 3
 
   publish-npm:
-    name: 📦 Publish to npm
+    name: '📦 Publish to npm'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [format-check, lint, type-check, test, build, build-example]
+    needs:
+      - format-check
+      - lint
+      - type-check
+      - test
+      - build
+      - build-example
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
       id-token: write
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '${{ env.NODE_VERSION }}'
           cache: npm
           registry-url: 'https://registry.npmjs.org'
-
       - name: Check if version changed
         id: version-check
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-
-          git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous commit"
+          git checkout HEAD~1 -- package.json 2>/dev/null || echo "none"
           PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "none")
-          echo "Previous version: $PREVIOUS_VERSION"
-
           git checkout HEAD -- package.json
-
           if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ] && [ "$PREVIOUS_VERSION" != "none" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           else
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
-
       - name: Skip if version unchanged
         if: steps.version-check.outputs.changed == 'false'
-        run: |
-          echo "ℹ️ Version unchanged – skipping npm publish" >> $GITHUB_STEP_SUMMARY
-
-      - name: Install dependencies
-        if: steps.version-check.outputs.changed == 'true'
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Download build artifacts
-        if: steps.version-check.outputs.changed == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output-${{ github.sha }}
-          path: dist/
-
+        run: echo "ℹ️ Version unchanged – skipping npm publish"
       - name: Publish to npm
         if: steps.version-check.outputs.changed == 'true'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
         run: |
-          echo "📦 Publishing version ${{ steps.version-check.outputs.version }} to npm..."
+          npm ci --prefer-offline --no-audit
           npm publish --provenance --access public
-
       - name: Create Git tag
         if: steps.version-check.outputs.changed == 'true'
         run: |
@@ -290,22 +249,17 @@ jobs:
           git tag -a "v${{ steps.version-check.outputs.version }}" -m "Release v${{ steps.version-check.outputs.version }}"
           git push origin "v${{ steps.version-check.outputs.version }}"
 
-      - name: Create release summary
-        if: steps.version-check.outputs.changed == 'true'
-        run: |
-          {
-            echo "## 🎉 Released v${{ steps.version-check.outputs.version }}"
-            echo ""
-            echo "✅ Published to npm: [video-ambient-glow@${{ steps.version-check.outputs.version }}](https://www.npmjs.com/package/video-ambient-glow/v/${{ steps.version-check.outputs.version }})"
-            echo ""
-            echo "🏷️ Git tag created: \`v${{ steps.version-check.outputs.version }}\`"
-          } >> $GITHUB_STEP_SUMMARY
-
   ci-summary:
-    name: ✅ CI Summary
+    name: '✅ CI Summary'
     runs-on: ubuntu-latest
     needs:
-      [format-check, lint, type-check, test, build, build-example, publish-npm]
+      - format-check
+      - lint
+      - type-check
+      - test
+      - build
+      - build-example
+      - publish-npm
     if: always()
     steps:
       - name: Generate CI summary
@@ -314,74 +268,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-
-          # Terminal output
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "CI Pipeline Summary"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          failed=0
-
-          if [ "${{ needs.format-check.result }}" = "success" ]; then
-            echo "  ✅ Format"
-            echo "| Format | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Format"
-            echo "| Format | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          if [ "${{ needs.lint.result }}" = "success" ]; then
-            echo "  ✅ Lint"
-            echo "| Lint | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Lint"
-            echo "| Lint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          if [ "${{ needs.type-check.result }}" = "success" ]; then
-            echo "  ✅ Types"
-            echo "| Types | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Types"
-            echo "| Types | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          if [ "${{ needs.test.result }}" = "success" ]; then
-            echo "  ✅ Tests"
-            echo "| Tests | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Tests"
-            echo "| Tests | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          if [ "${{ needs.build.result }}" = "success" ]; then
-            echo "  ✅ Build"
-            echo "| Build | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Build"
-            echo "| Build | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          if [ "${{ needs.build-example.result }}" = "success" ]; then
-            echo "  ✅ Example"
-            echo "| Example | ✅ Success |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "  ❌ Example"
-            echo "| Example | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
-            failed=1
-          fi
-
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ $failed -eq 1 ]; then
-            echo "**❌ Pipeline Failed**" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          else
-            echo "**✅ All Jobs Passed**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "| Format Check | ${{ needs.format-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint        | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check  | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test        | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build       | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Example     | ${{ needs.build-example.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Publish npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
