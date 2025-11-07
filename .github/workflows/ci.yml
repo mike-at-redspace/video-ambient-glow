@@ -208,8 +208,9 @@ jobs:
       - lint
       - type-check
       - test
+      - check-changes
       - build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.build.result == 'success' || needs.build.result == 'skipped')
     permissions:
       contents: write
       id-token: write
@@ -238,12 +239,25 @@ jobs:
       - name: Skip if version unchanged
         if: steps.version-check.outputs.changed == 'false'
         run: echo "ℹ️ Version unchanged – skipping npm publish"
+      - name: Download build artifacts (if build ran)
+        if: steps.version-check.outputs.changed == 'true' && needs.build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: 'build-output-${{ github.sha }}'
+          path: dist/
       - name: Publish to npm
         if: steps.version-check.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
         run: |
           npm ci --prefer-offline --no-audit
+          # Only run build if we don't have artifacts from build job
+          if [ ! -f "dist/index.js" ]; then
+            echo "🏗️ Running build (no artifacts from build job)"
+            npm run build
+          else
+            echo "✅ Using existing build artifacts"
+          fi
           npm publish --provenance --access public
       - name: Create Git tag
         if: steps.version-check.outputs.changed == 'true'
