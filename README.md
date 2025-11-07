@@ -22,6 +22,8 @@ Inspired by YouTube's immersive glow, this tiny, zero-dependency library adds a 
 - 🔒 Written in TypeScript with full types
 - ♿ Accessible (canvas uses `aria-hidden`)
 
+<a href="https://www.producthunt.com/products/video-ambient-glow?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-npm&#0045;video&#0045;ambient&#0045;glow" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1035553&theme=dark&t=1762518065941" alt="&#0091;npm&#0093;&#0032;video&#0045;ambient&#0045;glow - Add&#0032;YouTube&#0045;like&#0032;ambient&#0032;glow&#0032;to&#0032;any&#0032;HTML5&#0032;video | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 ## Install
 
 ```bash
