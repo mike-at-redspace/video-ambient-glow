@@ -42,9 +42,6 @@ env:
 permissions:
   contents: read
 
-# Since GitHub Actions doesn't support YAML anchors across the entire workflow,
-# we'll use shell scripts and consistent patterns instead for maintainability
-
 jobs:
   setup:
     name: '⚡ Setup & Cache'
@@ -201,7 +198,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 'test-coverage-${{ github.job }}-${{ github.sha }}'
+          name: 'test-coverage-${{ github.sha }}'
           path: coverage/
           retention-days: 7
           if-no-files-found: warn
@@ -247,7 +244,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set diff SHAs
-        run: ./scripts/set-diff-shas.sh
+        run: ./scripts/set-diff-shas.sh "${{ github.event.pull_request.base.sha || '' }}" "${{ github.event.pull_request.head.sha || '' }}"
       - name: Check ./src changes
         id: src
         run: ./scripts/check-changes.sh ./src "${{ inputs.force_build }}"
@@ -282,21 +279,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - *setup_node
-      - *restore_node_modules
-      - *install_deps
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          cache: npm
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            node_modules-${{ runner.os }}-${{ runner.arch }}-node${{ env.NODE_VERSION }}-
+            node_modules-${{ runner.os }}-${{ runner.arch }}-
+      - name: Install dependencies (if cache miss)
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
+      - name: Build library
+        run: npm run build
       - name: Compare bundle sizes (PR only)
         if: github.event_name == 'pull_request'
         run: ./scripts/compare-bundle-sizes.sh "${{ github.base_ref }}" "${{ github.sha }}"
-      - name: Build library
-        if: github.event_name != 'pull_request'
-        run: npm run build
       - name: Verify and report build artifacts
         run: ./scripts/verify-build.sh
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: 'build-output-${{ github.job }}-${{ github.sha }}'
+          name: 'build-output-${{ github.sha }}'
           path: dist/
           retention-days: 14
           if-no-files-found: error
@@ -315,10 +325,92 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: 'build-output-build-${{ github.sha }}'
+          name: 'build-output-${{ github.sha }}'
           path: dist/
       - name: Run performance benchmarks
         run: ./scripts/benchmark.sh
+
+  quality-gate:
+    name: '🚫 Quality Gate'
+    runs-on: ubuntu-latest
+    needs:
+      - format-check
+      - lint
+      - type-check
+      - test
+      - security-audit
+      - build
+      - benchmark
+    if: always()
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Check quality gate
+        run: |
+          set -euo pipefail
+
+          echo "🔍 Checking quality gate status..."
+
+          # Function to check job result
+          check_job() {
+            local name="$1"
+            local result="$2"
+            local required="${3:-true}"  # Optional: whether job is required
+            
+            case "$result" in
+              "success")
+                echo "✅ $name: $result"
+                return 0
+                ;;
+              "skipped")
+                if [ "$required" = "false" ]; then
+                  echo "⏭️ $name: $result (optional)"
+                  return 0
+                else
+                  echo "⏭️ $name: $result (allowed due to conditions)"
+                  return 0
+                fi
+                ;;
+              "failure"|"cancelled")
+                echo "❌ $name: $result"
+                return 1
+                ;;
+              *)
+                echo "❓ $name: $result (unknown - treating as failure)"
+                return 1
+                ;;
+            esac
+          }
+
+          # Track failures
+          failed_jobs=()
+
+          # Check each job - some can be skipped based on inputs
+          check_job "Format Check" "${{ needs.format-check.result }}" "optional" || failed_jobs+=("Format Check")
+          check_job "Lint" "${{ needs.lint.result }}" "optional" || failed_jobs+=("Lint") 
+          check_job "Type Check" "${{ needs.type-check.result }}" "true" || failed_jobs+=("Type Check")
+          check_job "Tests" "${{ needs.test.result }}" "optional" || failed_jobs+=("Tests")
+          check_job "Security Audit" "${{ needs.security-audit.result }}" "true" || failed_jobs+=("Security Audit")
+          check_job "Build" "${{ needs.build.result }}" "true" || failed_jobs+=("Build")
+          check_job "Benchmark" "${{ needs.benchmark.result }}" "optional" || failed_jobs+=("Benchmark")
+
+          echo ""
+          echo "📊 Quality Gate Summary:"
+          echo "========================"
+
+          if [ ${#failed_jobs[@]} -eq 0 ]; then
+            echo "🎉 All required quality checks passed!"
+            echo ""
+            echo "✅ **QUALITY GATE: PASSED** ✅"
+            echo "This PR is ready to merge! 🚀"
+          else
+            echo "❌ Failed jobs: ${failed_jobs[*]}"
+            echo ""
+            echo "🚫 **QUALITY GATE: FAILED** 🚫"
+            echo "This PR cannot be merged until all quality checks pass."
+            exit 1
+          fi
 
   build-example:
     name: '🎨 Build Example'
@@ -369,7 +461,7 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: 'build-output-build-${{ github.sha }}'
+          name: 'build-output-${{ github.sha }}'
           path: dist/
       - name: Build main library if needed
         run: |
@@ -405,7 +497,7 @@ jobs:
       - name: Upload example build
         uses: actions/upload-artifact@v4
         with:
-          name: 'example-build-${{ github.job }}-${{ github.sha }}'
+          name: 'example-build-${{ github.sha }}'
           path: example/dist/
           retention-days: 7
 
@@ -498,6 +590,7 @@ jobs:
       - security-audit
       - build
       - benchmark
+      - quality-gate
       - build-example
     if: always() && github.event_name == 'pull_request'
     permissions:
@@ -511,13 +604,13 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: 'build-output-build-${{ github.sha }}'
+          name: 'build-output-${{ github.sha }}'
           path: dist/
       - name: Download coverage artifacts (if available)
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: 'test-coverage-test-${{ github.sha }}'
+          name: 'test-coverage-${{ github.sha }}'
           path: coverage/
       - name: Create PR comment
         uses: actions/github-script@v7
@@ -546,7 +639,10 @@ jobs:
             comment += `| Lint | ${getStatusEmoji('${{ needs.lint.result }}')} ${{ needs.lint.result }} |\n`;
             comment += `| Type Check | ${getStatusEmoji('${{ needs.type-check.result }}')} ${{ needs.type-check.result }} |\n`;
             comment += `| Test | ${getStatusEmoji('${{ needs.test.result }}')} ${{ needs.test.result }} |\n`;
+            comment += `| Security Audit | ${getStatusEmoji('${{ needs.security-audit.result }}')} ${{ needs.security-audit.result }} |\n`;
             comment += `| Build | ${getStatusEmoji('${{ needs.build.result }}')} ${{ needs.build.result }} |\n`;
+            comment += `| Benchmark | ${getStatusEmoji('${{ needs.benchmark.result }}')} ${{ needs.benchmark.result }} |\n`;
+            comment += `| 🚫 **Quality Gate** | ${getStatusEmoji('${{ needs.quality-gate.result }}')} **${{ needs.quality-gate.result }}** |\n`;
             comment += `| Build Example | ${getStatusEmoji('${{ needs.build-example.result }}')} ${{ needs.build-example.result }} |\n`;
 
             // Bundle size info (if available)
@@ -627,6 +723,7 @@ jobs:
       - security-audit
       - build
       - benchmark
+      - quality-gate
       - build-example
       - publish-npm
     if: always()
@@ -640,7 +737,7 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: 'build-output-build-${{ github.sha }}'
+          name: 'build-output-${{ github.sha }}'
           path: dist/
       - name: Generate CI summary
         run: |
@@ -675,7 +772,7 @@ jobs:
           failed_jobs=""
 
           # Check each job result
-          for job in "format-check:${{ needs.format-check.result }}" "lint:${{ needs.lint.result }}" "type-check:${{ needs.type-check.result }}" "test:${{ needs.test.result }}" "security-audit:${{ needs.security-audit.result }}" "build:${{ needs.build.result }}" "benchmark:${{ needs.benchmark.result }}" "build-example:${{ needs.build-example.result }}"; do
+          for job in "format-check:${{ needs.format-check.result }}" "lint:${{ needs.lint.result }}" "type-check:${{ needs.type-check.result }}" "test:${{ needs.test.result }}" "security-audit:${{ needs.security-audit.result }}" "build:${{ needs.build.result }}" "benchmark:${{ needs.benchmark.result }}" "quality-gate:${{ needs.quality-gate.result }}" "build-example:${{ needs.build-example.result }}"; do
             job_name=$(echo "$job" | cut -d: -f1)
             job_result=$(echo "$job" | cut -d: -f2)
             if [ "$job_result" = "failure" ]; then
@@ -700,6 +797,7 @@ jobs:
           echo "| 🔒 Security Audit | $(get_status_emoji '${{ needs.security-audit.result }}') ${{ needs.security-audit.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
           echo "| 🏗️ Build | $(get_status_emoji '${{ needs.build.result }}') ${{ needs.build.result }} | ~1m |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚡ Performance Benchmark | $(get_status_emoji '${{ needs.benchmark.result }}') ${{ needs.benchmark.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚫 Quality Gate | $(get_status_emoji '${{ needs.quality-gate.result }}') ${{ needs.quality-gate.result }} | ~15s |" >> $GITHUB_STEP_SUMMARY
           echo "| 🎨 Build Example | $(get_status_emoji '${{ needs.build-example.result }}') ${{ needs.build-example.result }} | ~30s |" >> $GITHUB_STEP_SUMMARY
           echo "| 📦 Publish npm | $(get_status_emoji '${{ needs.publish-npm.result }}') ${{ needs.publish-npm.result }} | ~45s |" >> $GITHUB_STEP_SUMMARY
 
