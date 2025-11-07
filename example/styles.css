@@ -486,6 +486,7 @@
     font-variant: all-small-caps;
     transition: text-shadow 0.3s ease;
     will-change: text-shadow;
+    @apply pb-1;
   }
 
   .tp-rotv_t:hover {
