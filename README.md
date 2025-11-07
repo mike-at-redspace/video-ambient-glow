@@ -64,7 +64,7 @@ interface GlowOptions {
   saturate?: number // default: 1.2
   scale?: number // canvas scale, default: 1.08
   downscale?: number // sampling 0.01–0.5, default: 0.08
-  updateInterval?: number // in ms, default: 450
+  updateInterval?: number // in ms, default: 98
   blendOld?: number // @deprecated Use responsiveness instead. Old frame weight, default: 0.85 (ignored if responsiveness is set)
   blendNew?: number // @deprecated Use responsiveness instead. New frame weight, default: 0.15 (ignored if responsiveness is set)
   responsiveness?: number // 0.0–1.0, simplified blending control, default: undefined. Higher = more responsive to changes. Overrides blendOld/blendNew when set.
