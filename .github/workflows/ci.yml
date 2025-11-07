@@ -209,8 +209,7 @@ jobs:
       - type-check
       - test
       - check-changes
-      - build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
       id-token: write
@@ -239,9 +238,10 @@ jobs:
       - name: Skip if version unchanged
         if: steps.version-check.outputs.changed == 'false'
         run: echo "ℹ️ Version unchanged – skipping npm publish"
-      - name: Download build artifacts (if build ran)
-        if: steps.version-check.outputs.changed == 'true' && needs.build.result == 'success'
+      - name: Download build artifacts (if available)
+        if: steps.version-check.outputs.changed == 'true'
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
