@@ -511,6 +511,7 @@ jobs:
       - lint
       - type-check
       - test
+      - build
       - check-changes
     if: |
       always() && 
@@ -520,10 +521,11 @@ jobs:
       (needs.format-check.result == 'success' || needs.format-check.result == 'skipped') &&
       (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
       (needs.type-check.result == 'success') &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped')
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.build.result == 'success')
     permissions:
-      contents: write
-      id-token: write
+      contents: write # Required: Create Git tags
+      id-token: write # Required: npm provenance
     steps:
       - uses: actions/checkout@v4
         with:
@@ -546,10 +548,9 @@ jobs:
       - name: Skip if version unchanged
         if: steps.version-check.outputs.changed == 'false'
         run: echo "ℹ️ Version unchanged – skipping npm publish"
-      - name: Download build artifacts (if available)
-        if: steps.version-check.outputs.changed == 'true'
+      - name: Download build artifacts (if needed for publish)
+        if: steps.version-check.outputs.changed == 'true' && needs.build.result == 'success'
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
@@ -600,15 +601,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Download build artifacts (if available)
+      - name: Download build artifacts (if build succeeded)
+        if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
-      - name: Download coverage artifacts (if available)
+      - name: Download coverage artifacts (if tests ran)
+        if: needs.test.result == 'success'
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: 'test-coverage-${{ github.sha }}'
           path: coverage/
@@ -733,9 +734,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Download build artifacts (if available)
+      - name: Download build artifacts (if build succeeded)
+        if: needs.build.result == 'success'
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: 'build-output-${{ github.sha }}'
           path: dist/
