@@ -57,11 +57,14 @@ export class AmbientGlow {
   private animationFrameId: number | null = null
   private lastUpdateTime = 0
   private resizeTimeout: number | null = null
+  private resizeRafId: number | null = null
   private boundHandlers: Map<string, EventListener> = new Map()
   private isDestroyed = false
   private resizeObserver: ResizeObserver | null = null
   private intersectionObserver: IntersectionObserver | null = null
   private isVisible = true
+  private lastRect: { width: number; height: number; time: number } | null =
+    null
 
   /**
    * Creates a glow instance attached to a video element.
@@ -242,16 +245,51 @@ export class AmbientGlow {
 
   /**
    * Debounces resize events to avoid excessive canvas resizing.
+   * Immediately updates canvas dimensions but defers expensive drawing.
    */
   private debouncedResize(): void {
     if (this.isDestroyed) return
 
+    // Immediately resize canvas for responsiveness
+    this.resizeCanvas()
+
+    // Cancel any pending draw operations
     if (this.resizeTimeout !== null) clearTimeout(this.resizeTimeout)
+    if (this.resizeRafId !== null) cancelAnimationFrame(this.resizeRafId)
+
+    // Debounce the expensive drawing operation
     this.resizeTimeout = window.setTimeout(() => {
       if (this.isDestroyed) return
-      this.resizeCanvas()
-      this.drawFrame()
+      this.resizeRafId = requestAnimationFrame(() => {
+        if (this.isDestroyed) return
+        this.drawFrame()
+        this.resizeRafId = null
+      })
     }, RESIZE_DEBOUNCE_MS)
+  }
+
+  /**
+   * Gets cached or fresh bounding rect for performance.
+   */
+  private getCachedRect(): DOMRect {
+    const now = performance.now()
+    const cacheValidMs = 16 // ~1 frame at 60fps
+
+    if (this.lastRect && now - this.lastRect.time < cacheValidMs) {
+      return {
+        width: this.lastRect.width,
+        height: this.lastRect.height
+      } as DOMRect
+    }
+
+    const rect = this.video.getBoundingClientRect()
+    this.lastRect = {
+      width: rect.width,
+      height: rect.height,
+      time: now
+    }
+
+    return rect
   }
 
   /**
@@ -262,7 +300,7 @@ export class AmbientGlow {
     if (this.isDestroyed) return
 
     const { downscale, scale } = this.options
-    const rect = this.video.getBoundingClientRect()
+    const rect = this.getCachedRect()
     const videoW = this.video.videoWidth || rect.width
     const videoH = this.video.videoHeight || rect.height
 
@@ -406,6 +444,11 @@ export class AmbientGlow {
     if (this.resizeTimeout !== null) {
       clearTimeout(this.resizeTimeout)
       this.resizeTimeout = null
+    }
+
+    if (this.resizeRafId !== null) {
+      cancelAnimationFrame(this.resizeRafId)
+      this.resizeRafId = null
     }
 
     if (this.resizeObserver) {

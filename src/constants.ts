@@ -34,7 +34,7 @@ export const VIDEO_READY_STATE_CURRENT_DATA = 2
  *
  * @internal
  */
-export const RESIZE_DEBOUNCE_MS = 150
+export const RESIZE_DEBOUNCE_MS = 100
 
 /**
  * Canvas CSS styles.

@@ -13,6 +13,21 @@ describe('AmbientGlow', () => {
     video.height = 360
     parent.appendChild(video)
     document.body.appendChild(parent)
+
+    // Mock IntersectionObserver globally for all tests
+    if (!global.IntersectionObserver) {
+      global.IntersectionObserver = vi.fn().mockImplementation(function (
+        _callback: IntersectionObserverCallback,
+        _options?: IntersectionObserverInit
+      ) {
+        return {
+          observe: vi.fn(),
+          disconnect: vi.fn(),
+          unobserve: vi.fn(),
+          takeRecords: vi.fn()
+        }
+      }) as unknown as typeof IntersectionObserver
+    }
   })
 
   afterEach(() => {
@@ -270,13 +285,10 @@ describe('AmbientGlow', () => {
       video.height = 720
       window.dispatchEvent(new Event('resize'))
 
-      // Allow debounce to complete
-      vi.advanceTimersByTime(200)
-
       expect(canvas).toBeTruthy()
-      // Canvas dimensions should be valid
       expect(canvas.width).toBeGreaterThan(0)
       expect(canvas.height).toBeGreaterThan(0)
+      vi.advanceTimersByTime(120)
       glow.destroy()
       vi.useRealTimers()
     })
@@ -291,7 +303,42 @@ describe('AmbientGlow', () => {
       window.dispatchEvent(new Event('resize'))
 
       // Advance timers to trigger debounced handler
-      vi.advanceTimersByTime(200)
+      vi.advanceTimersByTime(120)
+
+      glow.destroy()
+      vi.useRealTimers()
+    })
+
+    it('caches bounding rect calculations for performance', () => {
+      const glow = new AmbientGlow(video)
+      const getBoundingClientRectSpy = vi.spyOn(video, 'getBoundingClientRect')
+
+      // Trigger multiple rapid resizes
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('resize'))
+
+      // Should use cached rect, not call getBoundingClientRect for each resize
+      // (Allow at least one call for the initial cache)
+      expect(getBoundingClientRectSpy.mock.calls.length).toBeLessThan(3)
+
+      glow.destroy()
+      getBoundingClientRectSpy.mockRestore()
+    })
+
+    it('implements performance optimizations for resize handling', () => {
+      vi.useFakeTimers()
+      const glow = new AmbientGlow(video)
+
+      // Test that multiple rapid resizes don't cause issues
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('resize'))
+
+      // Should not throw and should handle debouncing
+      expect(() => {
+        vi.advanceTimersByTime(120)
+      }).not.toThrow()
 
       glow.destroy()
       vi.useRealTimers()
@@ -392,18 +439,16 @@ describe('AmbientGlow', () => {
     it('disconnects IntersectionObserver when available', () => {
       const mockDisconnect = vi.fn()
       const mockObserve = vi.fn()
-      const IntersectionObserverMock = vi.fn(function IntersectionObserver(
-        this: IntersectionObserver,
+      const IntersectionObserverMock = vi.fn().mockImplementation(function (
         _callback: IntersectionObserverCallback,
         _options?: IntersectionObserverInit
       ) {
-        this.observe = mockObserve
-        this.disconnect = mockDisconnect
-        this.unobserve = vi.fn()
-        this.takeRecords = vi.fn()
-        this.root = null
-        this.rootMargin = ''
-        this.thresholds = []
+        return {
+          observe: mockObserve,
+          disconnect: mockDisconnect,
+          unobserve: vi.fn(),
+          takeRecords: vi.fn()
+        }
       }) as unknown as typeof IntersectionObserver
 
       const OriginalIntersectionObserver = global.IntersectionObserver
