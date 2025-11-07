@@ -44,7 +44,7 @@ export interface GlowOptions {
   downscale?: number
   /**
    * Update interval in ms. Lower = smoother but more CPU.
-   * @defaultValue 450
+   * @defaultValue 98
    */
   updateInterval?: number
   /**

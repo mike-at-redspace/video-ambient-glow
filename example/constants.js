@@ -1,3 +1,5 @@
+import { DEFAULT_OPTIONS } from '../src/constants.js'
+
 /**
  * Constants for the video-ambient-glow example application.
  *
@@ -37,14 +39,14 @@ export const DOM_IDS = {
  * @property {number} responsiveness - Simplified blending control (0.0-1.0). Higher = more responsive. Overrides blendOld/blendNew when set.
  */
 export const DEFAULT_GLOW_PARAMS = {
-  blur: 96,
-  opacity: 0.65,
-  brightness: 1.1,
-  saturate: 1.2,
-  scale: 1.08,
-  downscale: 0.08,
-  updateInterval: 450,
-  responsiveness: 0.15
+  blur: DEFAULT_OPTIONS.blur,
+  opacity: DEFAULT_OPTIONS.opacity,
+  brightness: DEFAULT_OPTIONS.brightness,
+  saturate: DEFAULT_OPTIONS.saturate,
+  scale: DEFAULT_OPTIONS.scale,
+  downscale: DEFAULT_OPTIONS.downscale,
+  updateInterval: DEFAULT_OPTIONS.updateInterval,
+  responsiveness: DEFAULT_OPTIONS.responsiveness
 }
 
 /**
@@ -158,7 +160,7 @@ export const PRESETS = {
     saturate: 2.0,
     scale: 1.15,
     downscale: 0.08,
-    updateInterval: 450,
+    updateInterval: 226,
     responsiveness: 0.15
   },
   monochrome: {
@@ -168,7 +170,7 @@ export const PRESETS = {
     saturate: 0.2,
     scale: 1.1,
     downscale: 0.08,
-    updateInterval: 450,
+    updateInterval: 226,
     responsiveness: 0.15
   },
   neon: {
@@ -178,7 +180,7 @@ export const PRESETS = {
     saturate: 3.0,
     scale: 1.12,
     downscale: 0.08,
-    updateInterval: 450,
+    updateInterval: 98,
     responsiveness: 0.15
   },
   performance: {
@@ -188,7 +190,7 @@ export const PRESETS = {
     saturate: 1.2,
     scale: 1.08,
     downscale: 0.04,
-    updateInterval: 1500,
+    updateInterval: 900,
     responsiveness: 0.1
   },
   quality: {
@@ -198,7 +200,7 @@ export const PRESETS = {
     saturate: 1.2,
     scale: 1.08,
     downscale: 0.15,
-    updateInterval: 300,
+    updateInterval: 66,
     responsiveness: 0.3
   }
 }

@@ -17,7 +17,7 @@ export const DEFAULT_OPTIONS = {
   saturate: 1.2,
   scale: 1.08,
   downscale: 0.08,
-  updateInterval: 450,
+  updateInterval: 98,
   blendOld: 0.85,
   blendNew: 0.15
 } as const
