@@ -1,7 +1,7 @@
 # video-ambient-glow
 
 [![npm version](https://img.shields.io/npm/v/video-ambient-glow.svg)](https://www.npmjs.com/package/video-ambient-glow)
-[![downloads](https://img.shields.io/npm/dw/video-ambient-glow)](https://www.npmjs.com/package/video-ambient-glow)
+[![downloads](https://badgen.net/npm/dw/video-ambient-glow)](https://www.npmjs.com/package/video-ambient-glow)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8a3d5952-e15b-4719-8f99-7e288dc3eedd/deploy-status)](https://app.netlify.com/projects/video-ambient-glow/deploys)
 [![Lint, Test & Build](https://github.com/mike-at-redspace/video-ambient-glow/actions/workflows/ci.yml/badge.svg)](https://github.com/mike-at-redspace/video-ambient-glow/actions/workflows/ci.yml)
 
