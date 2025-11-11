@@ -464,7 +464,8 @@
 
   /* Root Container */
   .tp-rotv {
-    @apply backdrop-blur-xl;
+    @apply backdrop-blur-xl rounded-2xl p-1;
+    overflow: hidden;
   }
 
   /* Body */
