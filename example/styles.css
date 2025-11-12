@@ -35,6 +35,8 @@
     --tp-monitor-background-color: hsla(0, 0%, 0%, 0.25);
     --tp-monitor-foreground-color: hsla(0, 0%, 100%, 0.35);
 
+    --bs-br: 1em;
+
     --gradient-0: linear-gradient(
       217deg,
       theme('colors.pink.500'),
@@ -464,13 +466,15 @@
 
   /* Root Container */
   .tp-rotv {
-    @apply backdrop-blur-xl rounded-2xl p-1;
+    @apply backdrop-blur-xl rounded-2xl;
     overflow: hidden;
   }
 
   /* Body */
   .tp-rotv_b {
     height: fit-content;
+    border-top-left-radius: 1em;
+    border-top-right-radius: 1em;
   }
 
   /* Title */
@@ -484,6 +488,11 @@
     transition: text-shadow 0.3s ease;
     will-change: text-shadow;
     @apply pb-1;
+  }
+
+  .tp-rotv_c > .tp-fldv.tp-v-lst > .tp-fldv_c {
+    border-bottom-left-radius: 1em;
+    border-bottom-right-radius: 1em;
   }
 
   .tp-rotv_t:hover {

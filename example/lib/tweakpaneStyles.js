@@ -21,7 +21,7 @@ export function applyTweakpaneStyles() {
         0px 9.7px 12.1px -1.6px hsl(0 0% 0% / 0.1)
       `,
       border: '2px solid light-dark(hsl(0 0% 0% / 0.1), hsl(0 0% 100% / 0.2))',
-      borderRadius: '12px',
+      borderRadius: '1em',
       backdropFilter: 'blur(8px) saturate(2.8) brightness(1.25) contrast(1.1)'
     })
   }
